@@ -121,7 +121,7 @@ begin
     (t_id, 'update', 'Updated transformation logic (Rahul) and re-ran against July.', now() - interval '6 days'),
     (t_id, 'update', 'Validation completed for August data. Variance down to 0.02%.', now() - interval '5 days'),
     (t_id, 'update', 'Pending final finance confirmation.', now() - interval '3 days'),
-    (t_id, 'status', '', now() - interval '3 days', 'Active', 'Waiting'),
+    (t_id, 'status', '', now() - interval '3 days'),
     (t_id, 'update', 'Finance asked for March as the control month. Rahul is preparing it.', now() - interval '1 day');
   update entry set status_from = 'Active', status_to = 'Waiting' where task_id = t_id and kind = 'status';
   insert into link (task_id, url, title, type) values
