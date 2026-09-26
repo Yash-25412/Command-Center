@@ -176,6 +176,24 @@ export async function followUp(formData: FormData) {
   revalidatePath("/work");
 }
 
+export async function addLink(formData: FormData) {
+  const taskId = String(formData.get("taskId"));
+  const url = String(formData.get("url") || "").trim();
+  const title = String(formData.get("title") || "").trim();
+  const type = String(formData.get("type") || "Link").trim();
+  if (!url) return;
+
+  const supabase = createClient();
+  await supabase.from("link").insert({
+    task_id: taskId,
+    url,
+    title: title || url,
+    type: type || "Link"
+  });
+
+  revalidatePath(`/task/${taskId}`);
+}
+
 export async function resumeFromWaiting(formData: FormData) {
   const taskId = String(formData.get("taskId"));
   const who = String(formData.get("who") || "them");

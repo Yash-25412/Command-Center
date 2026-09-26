@@ -2,7 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import JourneyComposer from "@/components/JourneyComposer";
-import { changeStatus, followUp, resumeFromWaiting } from "@/app/actions/tasks";
+import { changeStatus, followUp, resumeFromWaiting, addLink } from "@/app/actions/tasks";
+import ProjectPicker from "@/components/ProjectPicker";
 import { STATUS_META, dueLabel, fmtDateWeekday, initials } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -98,9 +99,9 @@ export default async function TaskDetailPage({ params }: { params: { id: string 
             </section>
           )}
 
-          {links && links.length > 0 && (
-            <section className="flex flex-col gap-2.5">
-              <h2 className="text-xs font-semibold uppercase tracking-wide text-ink3">Links</h2>
+          <section className="flex flex-col gap-2.5">
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-ink3">Links</h2>
+            {links && links.length > 0 && (
               <div className="grid grid-cols-3 gap-2.5">
                 {links.map((l) => (
                   <a
@@ -120,8 +121,15 @@ export default async function TaskDetailPage({ params }: { params: { id: string 
                   </a>
                 ))}
               </div>
-            </section>
-          )}
+            )}
+            <form action={addLink} className="card flex items-center gap-2 p-2.5">
+              <input type="hidden" name="taskId" value={task.id} />
+              <input name="url" placeholder="https://..." className="field h-8 flex-[2] text-[13.5px]" />
+              <input name="title" placeholder="Title (optional)" className="field h-8 flex-1 text-[13.5px]" />
+              <input name="type" placeholder="Type" className="field h-8 w-[90px] text-[13.5px]" />
+              <button className="btn btn-sm">Add link</button>
+            </form>
+          </section>
 
           <section className="flex flex-col gap-3.5">
             <div className="flex items-baseline gap-2.5">
@@ -162,7 +170,10 @@ export default async function TaskDetailPage({ params }: { params: { id: string 
         <aside className="flex flex-col gap-5">
           <div className="card px-4 py-1">
             <Row label="Doer" value={doer ? (doer.is_me ? "Me" : doer.name) : "Unassigned"} />
-            <Row label="Project" value={project?.name || "None"} />
+            <div className="flex items-center justify-between border-b border-line py-2.5">
+              <span className="text-[13px] text-ink3">Project</span>
+              <ProjectPicker taskId={task.id} projectId={task.project_id} projects={projects || []} />
+            </div>
             <Row label="Category" value={category?.name || "None"} />
             <Row label="Priority" value={task.priority === "high" ? "High" : task.priority === "low" ? "Low" : "Medium"} />
             <Row label="Due" value={due.label} last />

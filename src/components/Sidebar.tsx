@@ -9,8 +9,11 @@ const NAV = [
   { href: "/today", label: "Today" },
   { href: "/inbox", label: "Inbox" },
   { href: "/work", label: "Work" },
+  { href: "/projects", label: "Projects" },
   { href: "/waiting", label: "Waiting" },
-  { href: "/people", label: "People" }
+  { href: "/people", label: "People" },
+  { href: "/journal", label: "Journal" },
+  { href: "/review", label: "Weekly Review" }
 ];
 
 export default function Sidebar({ inboxCount, peopleNames }: { inboxCount: number; peopleNames: string[] }) {
@@ -50,6 +53,14 @@ export default function Sidebar({ inboxCount, peopleNames }: { inboxCount: numbe
         Quick add
       </button>
 
+      <form action="/work" className="px-1">
+        <input
+          name="q"
+          placeholder="Search work..."
+          className="field h-8 w-full text-[13px]"
+        />
+      </form>
+
       <nav className="flex flex-col gap-0.5">
         {NAV.map((n) => {
           const on = pathname?.startsWith(n.href);
@@ -75,7 +86,7 @@ export default function Sidebar({ inboxCount, peopleNames }: { inboxCount: numbe
           {dark ? "Switch to light" : "Switch to dark"}
         </button>
         <p className="px-1 text-xs leading-snug text-ink3">
-          Projects, Journal, Weekly Review and search are on the way.
+          AI parsing, file uploads and a command palette are on the way.
         </p>
       </div>
 
