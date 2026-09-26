@@ -57,6 +57,19 @@ body {
   color: var(--ink);
 }
 
+/*
+  Everything below is wrapped in Tailwind's "components" layer. Without this,
+  these plain classes sit physically after "@tailwind utilities" in the
+  compiled CSS, which means they'd win cascade ties against utility classes
+  like w-[90px] or flex-1 with the same specificity (a single class selector).
+  That caused real bugs: a field styled with a fixed width utility could get
+  silently overridden back to width: 100% by .field below, throwing off flex
+  layouts (e.g. a 3-input row where one input balloons and the others
+  collapse). Tailwind's layer system reorders "components" before "utilities"
+  regardless of source position, so a utility class always wins as expected.
+*/
+@layer components {
+
 .chip {
   display: inline-flex;
   align-items: center;
@@ -146,4 +159,6 @@ body {
 .lift:hover {
   box-shadow: 0 8px 20px -12px rgba(0, 0, 0, 0.25);
   transform: translateY(-1px);
+}
+
 }
