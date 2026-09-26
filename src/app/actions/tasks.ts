@@ -56,6 +56,16 @@ export async function quickAddTask(formData: FormData) {
   redirect(`/task/${task.id}`);
 }
 
+export async function addCapture(formData: FormData) {
+  const text = String(formData.get("text") || "").trim();
+  if (!text) return;
+
+  const supabase = createClient();
+  await supabase.from("capture").insert({ text });
+
+  revalidatePath("/inbox");
+}
+
 export async function convertCapture(formData: FormData) {
   const captureId = String(formData.get("captureId"));
   const text = String(formData.get("text") || "");
