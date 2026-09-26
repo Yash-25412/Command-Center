@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { convertCapture, dismissCapture } from "@/app/actions/tasks";
+import { addCapture, convertCapture, dismissCapture } from "@/app/actions/tasks";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +19,18 @@ export default async function InboxPage() {
           until you decide.
         </p>
       </div>
+
+      <form action={addCapture} className="card flex items-center gap-2 p-2.5">
+        <input
+          name="text"
+          placeholder="Jot anything down, sort it out later..."
+          autoComplete="off"
+          className="field field-sm h-9 flex-1 text-[14px]"
+        />
+        <button type="submit" className="btn btn-pri btn-sm">
+          Capture
+        </button>
+      </form>
 
       <div className="card overflow-hidden">
         {(captures || []).map((c) => (
