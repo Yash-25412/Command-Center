@@ -88,7 +88,7 @@ export default async function WorkPage({
             name="q"
             defaultValue={q}
             placeholder="Search title or next action..."
-            className="field h-8 w-[220px] text-[13.5px]"
+            className="field field-sm h-8 w-[220px] text-[13.5px]"
           />
         </form>
         <div className="inline-flex gap-0.5 rounded-[10px] bg-sunk p-[3px]">

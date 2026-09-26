@@ -104,8 +104,8 @@ export default async function ProjectDetailPage({ params }: { params: { id: stri
               {milestones.length === 0 && <div className="p-3.5 text-[13px] text-ink3">No milestones yet.</div>}
               <form action={addMilestone} className="flex items-center gap-2 border-t border-line px-3.5 py-2.5">
                 <input type="hidden" name="projectId" value={project.id} />
-                <input name="name" placeholder="Add a milestone" className="field h-8 flex-1 text-[13.5px]" />
-                <input name="date" type="date" className="field h-8 w-[150px] text-[13.5px]" />
+                <input name="name" placeholder="Add a milestone" className="field field-sm h-8 flex-1 text-[13.5px]" />
+                <input name="date" type="date" className="field field-sm h-8 w-[150px] text-[13.5px]" />
                 <button className="btn btn-sm">Add</button>
               </form>
             </div>

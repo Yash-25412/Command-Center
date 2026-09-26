@@ -18,7 +18,7 @@ export default function ProjectPicker({
         name="projectId"
         defaultValue={projectId || ""}
         onChange={(e) => e.currentTarget.form?.requestSubmit()}
-        className="field h-7 max-w-[150px] text-[13px] font-medium"
+        className="field field-sm h-7 max-w-[150px] text-[13px] font-medium"
       >
         <option value="">None</option>
         {projects.map((p) => (

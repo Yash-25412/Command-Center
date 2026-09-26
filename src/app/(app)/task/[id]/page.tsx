@@ -124,9 +124,9 @@ export default async function TaskDetailPage({ params }: { params: { id: string 
             )}
             <form action={addLink} className="card flex items-center gap-2 p-2.5">
               <input type="hidden" name="taskId" value={task.id} />
-              <input name="url" placeholder="https://..." className="field h-8 flex-[2] text-[13.5px]" />
-              <input name="title" placeholder="Title (optional)" className="field h-8 flex-1 text-[13.5px]" />
-              <input name="type" placeholder="Type" className="field h-8 w-[90px] text-[13.5px]" />
+              <input name="url" placeholder="https://..." className="field field-sm h-8 flex-[2] text-[13.5px]" />
+              <input name="title" placeholder="Title (optional)" className="field field-sm h-8 flex-1 text-[13.5px]" />
+              <input name="type" placeholder="Type" className="field field-sm h-8 w-[90px] text-[13.5px]" />
               <button className="btn btn-sm">Add link</button>
             </form>
           </section>

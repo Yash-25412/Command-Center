@@ -57,7 +57,7 @@ export default function Sidebar({ inboxCount, peopleNames }: { inboxCount: numbe
         <input
           name="q"
           placeholder="Search work..."
-          className="field h-8 w-full text-[13px]"
+          className="field field-sm h-8 w-full text-[13px]"
         />
       </form>
 
