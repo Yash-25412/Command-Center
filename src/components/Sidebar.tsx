@@ -6,8 +6,11 @@ import { useEffect, useState } from "react";
 import QuickAdd from "./QuickAdd";
 
 const NAV = [
+  { href: "/today", label: "Today" },
+  { href: "/inbox", label: "Inbox" },
   { href: "/work", label: "Work" },
-  { href: "/inbox", label: "Inbox" }
+  { href: "/waiting", label: "Waiting" },
+  { href: "/people", label: "People" }
 ];
 
 export default function Sidebar({ inboxCount, peopleNames }: { inboxCount: number; peopleNames: string[] }) {
@@ -72,7 +75,7 @@ export default function Sidebar({ inboxCount, peopleNames }: { inboxCount: numbe
           {dark ? "Switch to light" : "Switch to dark"}
         </button>
         <p className="px-1 text-xs leading-snug text-ink3">
-          More screens (Today, Projects, People, Waiting) are on the way.
+          Projects, Journal, Weekly Review and search are on the way.
         </p>
       </div>
 
