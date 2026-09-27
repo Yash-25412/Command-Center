@@ -22,7 +22,7 @@ export default async function WorkPage({
       .select("id,title,status,priority,due_date,next_action,doer_id,project_id,description")
       .neq("status", "cancelled")
       .order("due_date", { ascending: true, nullsFirst: false }),
-    supabase.from("person").select("id,name,is_me,hue"),
+    supabase.from("person").select("id,name,is_me,hue,active"),
     supabase.from("project").select("id,name")
   ]);
 
@@ -117,7 +117,7 @@ export default async function WorkPage({
         ))}
         <span className="mx-1 h-5 w-px bg-line2" />
         {(people || [])
-          .filter((p) => !p.is_me)
+          .filter((p) => !p.is_me && p.active)
           .map((p) => (
             <Link
               key={p.id}
