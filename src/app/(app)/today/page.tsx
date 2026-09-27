@@ -50,7 +50,7 @@ export default async function TodayPage() {
     .sort((a, b) => (b.completed_at || "").localeCompare(a.completed_at || ""))
     .slice(0, 4);
 
-  const team = people.filter((p) => !p.is_me);
+  const team = people.filter((p) => !p.is_me && p.active);
   const teamPulse = team.map((p) => {
     const mine = openTasks.filter((t) => t.doer_id === p.id);
     return {
