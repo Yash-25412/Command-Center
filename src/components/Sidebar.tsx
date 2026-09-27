@@ -16,7 +16,15 @@ const NAV = [
   { href: "/review", label: "Weekly Review" }
 ];
 
-export default function Sidebar({ inboxCount, peopleNames }: { inboxCount: number; peopleNames: string[] }) {
+export default function Sidebar({
+  inboxCount,
+  people,
+  categories
+}: {
+  inboxCount: number;
+  people: { id: string; name: string; is_me: boolean }[];
+  categories: { id: string; name: string }[];
+}) {
   const pathname = usePathname();
   const [dark, setDark] = useState(false);
   const [qaOpen, setQaOpen] = useState(false);
@@ -90,7 +98,7 @@ export default function Sidebar({ inboxCount, peopleNames }: { inboxCount: numbe
         </p>
       </div>
 
-      <QuickAdd open={qaOpen} onClose={() => setQaOpen(false)} peopleNames={peopleNames} />
+      <QuickAdd open={qaOpen} onClose={() => setQaOpen(false)} people={people} categories={categories} />
     </aside>
   );
 }

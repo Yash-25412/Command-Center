@@ -204,6 +204,70 @@ export async function addLink(formData: FormData) {
   revalidatePath(`/task/${taskId}`);
 }
 
+const EDITABLE_FIELDS = new Set(["doer_id", "category_id", "priority", "due_date"]);
+
+export async function updateTaskField(formData: FormData) {
+  const taskId = String(formData.get("taskId"));
+  const field = String(formData.get("field") || "");
+  if (!EDITABLE_FIELDS.has(field)) return;
+
+  let value: string | null = String(formData.get("value") ?? "");
+  if (value === "") value = null;
+
+  const supabase = createClient();
+  await supabase
+    .from("task")
+    .update({ [field]: value, last_activity_at: new Date().toISOString() })
+    .eq("id", taskId);
+
+  revalidatePath(`/task/${taskId}`);
+  revalidatePath("/work");
+}
+
+export async function deleteTask(formData: FormData) {
+  const taskId = String(formData.get("taskId"));
+  const supabase = createClient();
+  await supabase.from("task").delete().eq("id", taskId);
+  revalidatePath("/work");
+  revalidatePath("/today");
+  redirect("/work");
+}
+
+export async function quickAddStructured(formData: FormData) {
+  const title = String(formData.get("title") || "").trim();
+  if (!title) return;
+
+  const doerId = String(formData.get("doerId") || "") || null;
+  const categoryId = String(formData.get("categoryId") || "") || null;
+  const priority = String(formData.get("priority") || "med") as "high" | "med" | "low";
+  const dueDate = String(formData.get("dueDate") || "") || null;
+
+  const supabase = createClient();
+  const { data: task, error } = await supabase
+    .from("task")
+    .insert({
+      title: title.charAt(0).toUpperCase() + title.slice(1),
+      doer_id: doerId,
+      category_id: categoryId,
+      priority,
+      due_date: dueDate,
+      status: "planned"
+    })
+    .select("id")
+    .single();
+
+  if (error) throw new Error(error.message);
+
+  await supabase.from("entry").insert({
+    task_id: task.id,
+    kind: "system",
+    body: "Task created with Quick add."
+  });
+
+  revalidatePath("/work");
+  redirect(`/task/${task.id}`);
+}
+
 export async function resumeFromWaiting(formData: FormData) {
   const taskId = String(formData.get("taskId"));
   const who = String(formData.get("who") || "them");

@@ -4,6 +4,9 @@ import Link from "next/link";
 import JourneyComposer from "@/components/JourneyComposer";
 import { changeStatus, followUp, resumeFromWaiting, addLink } from "@/app/actions/tasks";
 import ProjectPicker from "@/components/ProjectPicker";
+import TaskFieldSelect from "@/components/TaskFieldSelect";
+import TaskFieldDate from "@/components/TaskFieldDate";
+import DeleteTaskButton from "@/components/DeleteTaskButton";
 import { STATUS_META, dueLabel, fmtDateWeekday, initials } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +21,7 @@ export default async function TaskDetailPage({ params }: { params: { id: string 
       supabase.from("task").select("*").eq("id", params.id).maybeSingle(),
       supabase.from("entry").select("*").eq("task_id", params.id).order("occurred_at", { ascending: false }),
       supabase.from("link").select("*").eq("task_id", params.id),
-      supabase.from("person").select("id,name,is_me,hue"),
+      supabase.from("person").select("id,name,is_me,hue,active"),
       supabase.from("project").select("id,name"),
       supabase.from("category").select("id,name")
     ]);
@@ -30,6 +33,16 @@ export default async function TaskDetailPage({ params }: { params: { id: string 
   const category = categories?.find((c) => c.id === task.category_id);
   const due = dueLabel(task.due_date);
   const status = STATUS_META[task.status];
+
+  const doerOptions = (people || [])
+    .filter((p) => p.active || p.id === task.doer_id)
+    .map((p) => ({ value: p.id, label: p.is_me ? "Me" : p.name + (p.active ? "" : " (removed)") }));
+  const categoryOptions = (categories || []).map((c) => ({ value: c.id, label: c.name }));
+  const priorityOptions = [
+    { value: "high", label: "High" },
+    { value: "med", label: "Medium" },
+    { value: "low", label: "Low" }
+  ];
 
   return (
     <div className="flex flex-col gap-5">
@@ -169,15 +182,24 @@ export default async function TaskDetailPage({ params }: { params: { id: string 
 
         <aside className="flex flex-col gap-5">
           <div className="card px-4 py-1">
-            <Row label="Doer" value={doer ? (doer.is_me ? "Me" : doer.name) : "Unassigned"} />
-            <div className="flex items-center justify-between border-b border-line py-2.5">
-              <span className="text-[13px] text-ink3">Project</span>
+            <FieldRow label="Doer">
+              <TaskFieldSelect taskId={task.id} field="doer_id" value={task.doer_id} none="Unassigned" options={doerOptions} />
+            </FieldRow>
+            <FieldRow label="Project">
               <ProjectPicker taskId={task.id} projectId={task.project_id} projects={projects || []} />
-            </div>
-            <Row label="Category" value={category?.name || "None"} />
-            <Row label="Priority" value={task.priority === "high" ? "High" : task.priority === "low" ? "Low" : "Medium"} />
-            <Row label="Due" value={due.label} last />
+            </FieldRow>
+            <FieldRow label="Category">
+              <TaskFieldSelect taskId={task.id} field="category_id" value={task.category_id} none="None" options={categoryOptions} />
+            </FieldRow>
+            <FieldRow label="Priority">
+              <TaskFieldSelect taskId={task.id} field="priority" value={task.priority} options={priorityOptions} />
+            </FieldRow>
+            <FieldRow label="Due" last>
+              <TaskFieldDate taskId={task.id} field="due_date" value={task.due_date} />
+            </FieldRow>
           </div>
+
+          <DeleteTaskButton taskId={task.id} taskTitle={task.title} />
 
           <div className="flex flex-col gap-2">
             <span className="text-xs font-semibold uppercase tracking-wide text-ink3">Change status</span>
@@ -208,11 +230,11 @@ export default async function TaskDetailPage({ params }: { params: { id: string 
   );
 }
 
-function Row({ label, value, last }: { label: string; value: string; last?: boolean }) {
+function FieldRow({ label, last, children }: { label: string; last?: boolean; children: React.ReactNode }) {
   return (
     <div className={`flex items-center justify-between py-2.5 ${last ? "" : "border-b border-line"}`}>
       <span className="text-[13px] text-ink3">{label}</span>
-      <span className="font-medium">{value}</span>
+      {children}
     </div>
   );
 }
