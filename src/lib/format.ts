@@ -57,7 +57,7 @@ export function parseQuickAdd(raw: string, peopleNames: string[]) {
   let dueDate: string | null = null;
   let categoryName: string | null = null;
 
-  const doerMatch = s.match(/^\s*([A-Za-z]+)\s*:\s*/);
+  const doerMatch = s.match(/^\s*([A-Za-z]+(?:\s+[A-Za-z]+)*)\s*:\s*/);
   if (doerMatch) {
     const name = doerMatch[1];
     if (peopleNames.some((n) => n.toLowerCase() === name.toLowerCase())) {
