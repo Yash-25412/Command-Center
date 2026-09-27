@@ -7,6 +7,8 @@ import ProjectPicker from "@/components/ProjectPicker";
 import TaskFieldSelect from "@/components/TaskFieldSelect";
 import TaskFieldDate from "@/components/TaskFieldDate";
 import DeleteTaskButton from "@/components/DeleteTaskButton";
+import TaskAssignees from "@/components/TaskAssignees";
+import NextActionEditor from "@/components/NextActionEditor";
 import { STATUS_META, dueLabel, fmtDateWeekday, initials } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -16,27 +18,29 @@ const STATUS_PICKS = ["planned", "active", "waiting", "blocked", "review", "done
 export default async function TaskDetailPage({ params }: { params: { id: string } }) {
   const supabase = createClient();
 
-  const [{ data: task }, { data: entries }, { data: links }, { data: people }, { data: projects }, { data: categories }] =
+  const [{ data: task }, { data: entries }, { data: links }, { data: people }, { data: projects }, { data: categories }, { data: assigneeRows }] =
     await Promise.all([
       supabase.from("task").select("*").eq("id", params.id).maybeSingle(),
       supabase.from("entry").select("*").eq("task_id", params.id).order("occurred_at", { ascending: false }),
       supabase.from("link").select("*").eq("task_id", params.id),
       supabase.from("person").select("id,name,is_me,hue,active"),
       supabase.from("project").select("id,name"),
-      supabase.from("category").select("id,name")
+      supabase.from("category").select("id,name"),
+      supabase.from("task_assignee").select("person_id").eq("task_id", params.id)
     ]);
 
   if (!task) notFound();
 
-  const doer = people?.find((p) => p.id === task.doer_id);
+  const assigneeIds = (assigneeRows || []).map((r) => r.person_id);
+  const assignees = (people || []).filter((p) => assigneeIds.includes(p.id));
   const project = projects?.find((p) => p.id === task.project_id);
   const category = categories?.find((c) => c.id === task.category_id);
   const due = dueLabel(task.due_date);
   const status = STATUS_META[task.status];
 
-  const doerOptions = (people || [])
-    .filter((p) => p.active || p.id === task.doer_id)
-    .map((p) => ({ value: p.id, label: p.is_me ? "Me" : p.name + (p.active ? "" : " (removed)") }));
+  const assigneeOptions = (people || [])
+    .filter((p) => p.active || assigneeIds.includes(p.id))
+    .map((p) => ({ id: p.id, label: p.is_me ? "Me" : p.name + (p.active ? "" : " (removed)") }));
   const categoryOptions = (categories || []).map((c) => ({ value: c.id, label: c.name }));
   const priorityOptions = [
     { value: "high", label: "High" },
@@ -60,20 +64,15 @@ export default async function TaskDetailPage({ params }: { params: { id: string 
             <div className="flex flex-wrap items-center gap-2">
               <span className={`chip ${status.className}`}>{status.label}</span>
               {task.priority === "high" && <span className="chip chip-red">High priority</span>}
-              <span className="chip">{doer ? (doer.is_me ? "Me (doer)" : doer.name) : "Unassigned"}</span>
+              <span className="chip">
+                {assignees.length > 0 ? assignees.map((a) => (a.is_me ? "Me" : a.name)).join(", ") : "Unassigned"}
+              </span>
               <span className={`chip ${due.cls}`}>{due.label}</span>
               {category && <span className="chip">{category.name}</span>}
             </div>
           </div>
 
-          <div className="card flex flex-col gap-1.5 border-accent p-4">
-            <span className="text-xs font-semibold uppercase tracking-wide text-accent">Next action</span>
-            {task.next_action ? (
-              <span className="text-[16px] font-medium leading-snug">{task.next_action}</span>
-            ) : (
-              <span className="text-amber">No next action yet. What is the very next concrete step?</span>
-            )}
-          </div>
+          <NextActionEditor taskId={task.id} value={task.next_action || ""} />
 
           {task.status === "waiting" && (
             <div className="card flex flex-col gap-2.5 border-transparent bg-amberbg p-4">
@@ -181,10 +180,12 @@ export default async function TaskDetailPage({ params }: { params: { id: string 
         </div>
 
         <aside className="flex flex-col gap-5">
+          <div className="card flex flex-col gap-1.5 px-4 py-3.5">
+            <span className="text-[13px] text-ink3">Assigned to</span>
+            <TaskAssignees taskId={task.id} selected={assigneeIds} options={assigneeOptions} />
+          </div>
+
           <div className="card px-4 py-1">
-            <FieldRow label="Doer">
-              <TaskFieldSelect taskId={task.id} field="doer_id" value={task.doer_id} none="Unassigned" options={doerOptions} />
-            </FieldRow>
             <FieldRow label="Project">
               <ProjectPicker taskId={task.id} projectId={task.project_id} projects={projects || []} />
             </FieldRow>
@@ -194,8 +195,11 @@ export default async function TaskDetailPage({ params }: { params: { id: string 
             <FieldRow label="Priority">
               <TaskFieldSelect taskId={task.id} field="priority" value={task.priority} options={priorityOptions} />
             </FieldRow>
-            <FieldRow label="Due" last>
+            <FieldRow label="Due">
               <TaskFieldDate taskId={task.id} field="due_date" value={task.due_date} />
+            </FieldRow>
+            <FieldRow label="Created" last>
+              <TaskFieldDate taskId={task.id} field="created_at" value={task.created_at?.slice(0, 10) || null} />
             </FieldRow>
           </div>
 

@@ -5,15 +5,33 @@ import { fmtDate, fmtDateWeekday, initials } from "@/lib/format";
 export const dynamic = "force-dynamic";
 
 function Avatar({ t }: { t: DecoratedTask }) {
-  const isMe = !!t.doer?.is_me;
+  if (t.assignees.length === 0) {
+    return (
+      <span className="avatar h-[24px] w-[24px] flex-none text-[11px]" title="Unassigned">
+        ?
+      </span>
+    );
+  }
+  const shown = t.assignees.slice(0, 2);
+  const extra = t.assignees.length - shown.length;
   return (
-    <span
-      className={`avatar h-[24px] w-[24px] text-[11px] ${isMe ? "avatar-me" : ""}`}
-      style={isMe ? undefined : { background: `hsl(${t.doer?.hue ?? 200} 30% 88%)`, color: `hsl(${t.doer?.hue ?? 200} 35% 32%)` }}
-      title={t.doer?.name || "Unassigned"}
-    >
-      {initials(t.doer?.name || "?")}
-    </span>
+    <div className="flex flex-none -space-x-1.5">
+      {shown.map((p) => (
+        <span
+          key={p.id}
+          className={`avatar h-[24px] w-[24px] flex-none text-[11px] ring-2 ring-surface ${p.is_me ? "avatar-me" : ""}`}
+          style={p.is_me ? undefined : { background: `hsl(${p.hue} 30% 88%)`, color: `hsl(${p.hue} 35% 32%)` }}
+          title={p.is_me ? "Me" : p.name}
+        >
+          {initials(p.is_me ? "Me" : p.name)}
+        </span>
+      ))}
+      {extra > 0 && (
+        <span className="avatar h-[24px] w-[24px] flex-none text-[11px]" title={t.assignees.slice(2).map((p) => p.name).join(", ")}>
+          +{extra}
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -23,7 +41,7 @@ export default async function TodayPage() {
   const openTasks = tasks.filter((t) => t.isOpen);
 
   const focus = openTasks
-    .filter((t) => t.focus_on === today || (t.doer?.is_me && t.due_date === today))
+    .filter((t) => t.focus_on === today || (t.assignees.some((a) => a.is_me) && t.due_date === today))
     .sort((a, b) => a.rank - b.rank);
   const focusIds = new Set(focus.map((t) => t.id));
 
@@ -52,7 +70,7 @@ export default async function TodayPage() {
 
   const team = people.filter((p) => !p.is_me && p.active);
   const teamPulse = team.map((p) => {
-    const mine = openTasks.filter((t) => t.doer_id === p.id);
+    const mine = openTasks.filter((t) => t.assignees.some((a) => a.id === p.id));
     return {
       person: p,
       open: mine.length,

@@ -12,8 +12,8 @@ export default async function PeoplePage() {
   const openTasks = tasks.filter((t) => t.isOpen);
 
   const rows = team.map((p) => {
-    const mine = openTasks.filter((t) => t.doer_id === p.id);
-    const done = tasks.filter((t) => t.doer_id === p.id && t.status === "done");
+    const mine = openTasks.filter((t) => t.assignees.some((a) => a.id === p.id));
+    const done = tasks.filter((t) => t.assignees.some((a) => a.id === p.id) && t.status === "done");
     const overdue = mine.filter((t) => t.overdue).length;
     const blocked = mine.filter((t) => t.status === "blocked").length;
     const waiting = mine.filter((t) => t.status === "waiting").length;

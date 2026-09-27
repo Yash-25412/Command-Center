@@ -25,8 +25,8 @@ export default function QuickAdd({
   const peopleNames = people.map((p) => (p.is_me ? "Me" : p.name));
 
   return (
-    <div className="fixed inset-0 z-20 flex items-start justify-center bg-black/40 pt-[150px]" onClick={onClose}>
-      <div className="card w-[560px] p-5" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-20" onClick={onClose}>
+      <div className="card absolute left-[248px] top-[104px] w-[560px] p-5 shadow-lg" onClick={(e) => e.stopPropagation()}>
         <div className="mb-3.5 flex items-center">
           <span className="font-serif text-[20px] font-medium flex-1">Quick add</span>
           <button className="btn btn-sm" onClick={onClose} type="button">
@@ -78,15 +78,19 @@ export default function QuickAdd({
         ) : (
           <form action={quickAddStructured} className="flex flex-col gap-2.5">
             <input autoFocus name="title" placeholder="What needs to happen?" required className="field h-11 text-[15px]" />
-            <div className="grid grid-cols-2 gap-2.5">
-              <select name="doerId" defaultValue="" className="field h-10 text-[13.5px]">
-                <option value="">Unassigned</option>
+            <div className="flex flex-col gap-1">
+              <span className="text-[12.5px] text-ink3">Assign to (pick one or more)</span>
+              <div className="flex flex-wrap gap-x-4 gap-y-1.5 rounded-[10px] border border-line2 p-2.5">
+                {people.length === 0 && <span className="text-[13px] text-ink3">No one to assign yet.</span>}
                 {people.map((p) => (
-                  <option key={p.id} value={p.id}>
+                  <label key={p.id} className="flex items-center gap-1.5 text-[13.5px] font-medium">
+                    <input type="checkbox" name="personIds" value={p.id} className="h-3.5 w-3.5 accent-[var(--accent)]" />
                     {p.is_me ? "Me" : p.name}
-                  </option>
+                  </label>
                 ))}
-              </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2.5">
               <select name="categoryId" defaultValue="" className="field h-10 text-[13.5px]">
                 <option value="">No category</option>
                 {categories.map((c) => (

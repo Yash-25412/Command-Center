@@ -31,11 +31,13 @@ export async function quickAddTask(formData: FormData) {
 
   const title = parsed.title || raw;
 
+  const assignedId = doer?.id || me?.id || null;
+
   const { data: task, error } = await supabase
     .from("task")
     .insert({
       title: title.charAt(0).toUpperCase() + title.slice(1),
-      doer_id: doer?.id || me?.id || null,
+      doer_id: assignedId,
       category_id: categoryId,
       priority: parsed.priority,
       due_date: parsed.dueDate,
@@ -45,6 +47,10 @@ export async function quickAddTask(formData: FormData) {
     .single();
 
   if (error) throw new Error(error.message);
+
+  if (assignedId) {
+    await supabase.from("task_assignee").insert({ task_id: task.id, person_id: assignedId });
+  }
 
   await supabase.from("entry").insert({
     task_id: task.id,
@@ -204,15 +210,18 @@ export async function addLink(formData: FormData) {
   revalidatePath(`/task/${taskId}`);
 }
 
-const EDITABLE_FIELDS = new Set(["doer_id", "category_id", "priority", "due_date"]);
+const EDITABLE_FIELDS = new Set(["doer_id", "category_id", "priority", "due_date", "next_action", "created_at"]);
 
 export async function updateTaskField(formData: FormData) {
   const taskId = String(formData.get("taskId"));
   const field = String(formData.get("field") || "");
   if (!EDITABLE_FIELDS.has(field)) return;
 
-  let value: string | null = String(formData.get("value") ?? "");
+  let value: string | null = String(formData.get("value") ?? "").trim();
   if (value === "") value = null;
+
+  // Don't let the "Created" date be cleared out entirely.
+  if (field === "created_at" && !value) return;
 
   const supabase = createClient();
   await supabase
@@ -222,6 +231,29 @@ export async function updateTaskField(formData: FormData) {
 
   revalidatePath(`/task/${taskId}`);
   revalidatePath("/work");
+}
+
+export async function setTaskAssignees(formData: FormData) {
+  const taskId = String(formData.get("taskId"));
+  const personIds = formData.getAll("personIds").map(String).filter(Boolean);
+  const supabase = createClient();
+
+  await supabase.from("task_assignee").delete().eq("task_id", taskId);
+  if (personIds.length > 0) {
+    await supabase.from("task_assignee").insert(personIds.map((personId) => ({ task_id: taskId, person_id: personId })));
+  }
+
+  // Keep doer_id in sync as the first assignee, for any older code path that still reads it.
+  await supabase
+    .from("task")
+    .update({ doer_id: personIds[0] || null, last_activity_at: new Date().toISOString() })
+    .eq("id", taskId);
+
+  revalidatePath(`/task/${taskId}`);
+  revalidatePath("/work");
+  revalidatePath("/today");
+  revalidatePath("/people");
+  revalidatePath("/projects");
 }
 
 export async function deleteTask(formData: FormData) {
@@ -237,7 +269,7 @@ export async function quickAddStructured(formData: FormData) {
   const title = String(formData.get("title") || "").trim();
   if (!title) return;
 
-  const doerId = String(formData.get("doerId") || "") || null;
+  const personIds = formData.getAll("personIds").map(String).filter(Boolean);
   const categoryId = String(formData.get("categoryId") || "") || null;
   const priority = String(formData.get("priority") || "med") as "high" | "med" | "low";
   const dueDate = String(formData.get("dueDate") || "") || null;
@@ -247,7 +279,7 @@ export async function quickAddStructured(formData: FormData) {
     .from("task")
     .insert({
       title: title.charAt(0).toUpperCase() + title.slice(1),
-      doer_id: doerId,
+      doer_id: personIds[0] || null,
       category_id: categoryId,
       priority,
       due_date: dueDate,
@@ -257,6 +289,10 @@ export async function quickAddStructured(formData: FormData) {
     .single();
 
   if (error) throw new Error(error.message);
+
+  if (personIds.length > 0) {
+    await supabase.from("task_assignee").insert(personIds.map((personId) => ({ task_id: task.id, person_id: personId })));
+  }
 
   await supabase.from("entry").insert({
     task_id: task.id,

@@ -19,6 +19,26 @@ export async function setTaskProject(formData: FormData) {
   revalidatePath("/projects");
 }
 
+const PROJECT_EDITABLE_FIELDS = new Set(["name", "objective"]);
+
+export async function updateProjectField(formData: FormData) {
+  const projectId = String(formData.get("projectId"));
+  const field = String(formData.get("field") || "");
+  if (!PROJECT_EDITABLE_FIELDS.has(field)) return;
+
+  const value = String(formData.get("value") ?? "").trim();
+  if (field === "name" && !value) return;
+
+  const supabase = createClient();
+  await supabase
+    .from("project")
+    .update({ [field]: value })
+    .eq("id", projectId);
+
+  revalidatePath(`/project/${projectId}`);
+  revalidatePath("/projects");
+}
+
 export async function addMilestone(formData: FormData) {
   const projectId = String(formData.get("projectId"));
   const name = String(formData.get("name") || "").trim();

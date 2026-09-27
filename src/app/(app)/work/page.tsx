@@ -16,23 +16,33 @@ export default async function WorkPage({
   const q = (searchParams.q || "").trim().toLowerCase();
   const view = searchParams.view === "board" ? "board" : "list";
 
-  const [{ data: tasks }, { data: people }, { data: projects }] = await Promise.all([
+  const [{ data: tasks }, { data: people }, { data: projects }, { data: assigneeRows }] = await Promise.all([
     supabase
       .from("task")
       .select("id,title,status,priority,due_date,next_action,doer_id,project_id,description")
       .neq("status", "cancelled")
       .order("due_date", { ascending: true, nullsFirst: false }),
     supabase.from("person").select("id,name,is_me,hue,active"),
-    supabase.from("project").select("id,name")
+    supabase.from("project").select("id,name"),
+    supabase.from("task_assignee").select("task_id,person_id")
   ]);
 
   const peopleById = new Map((people || []).map((p) => [p.id, p]));
   const projectsById = new Map((projects || []).map((p) => [p.id, p]));
   const me = (people || []).find((p) => p.is_me);
 
+  const assigneeIdsByTask = new Map<string, string[]>();
+  (assigneeRows || []).forEach((r) => {
+    const list = assigneeIdsByTask.get(r.task_id) || [];
+    list.push(r.person_id);
+    assigneeIdsByTask.set(r.task_id, list);
+  });
+
   let rows: RowTask[] = (tasks || []).map((t) => {
-    const p = t.doer_id ? peopleById.get(t.doer_id) : null;
+    const assignedIds = assigneeIdsByTask.get(t.id) || (t.doer_id ? [t.doer_id] : []);
+    const assignedPeople = assignedIds.map((id) => peopleById.get(id)).filter((p): p is NonNullable<typeof p> => !!p);
     const pr = t.project_id ? projectsById.get(t.project_id) : null;
+    const first = assignedPeople[0];
     return {
       id: t.id,
       title: t.title,
@@ -40,17 +50,19 @@ export default async function WorkPage({
       priority: t.priority,
       due_date: t.due_date,
       next_action: t.next_action || "",
-      doerName: p?.name || "Unassigned",
-      doerIsMe: !!p?.is_me,
-      doerHue: p?.hue ?? 200,
+      doerName: first?.name || "Unassigned",
+      doerIsMe: !!first?.is_me,
+      doerHue: first?.hue ?? 200,
       projectName: pr?.name || null,
-      doerId: t.doer_id
-    } as RowTask & { doerId: string | null };
+      assignees: assignedPeople.map((p) => ({ id: p.id, name: p.name, is_me: p.is_me, hue: p.hue })),
+      doerId: t.doer_id,
+      assigneeIds: assignedIds
+    } as RowTask & { doerId: string | null; assigneeIds: string[] };
   });
 
-  if (scope === "me") rows = rows.filter((r: any) => r.doerIsMe);
-  if (scope === "team") rows = rows.filter((r: any) => !r.doerIsMe);
-  if (personFilter) rows = rows.filter((r: any) => r.doerId === personFilter);
+  if (scope === "me") rows = rows.filter((r: any) => r.assignees.some((a: any) => a.is_me));
+  if (scope === "team") rows = rows.filter((r: any) => !r.assignees.some((a: any) => a.is_me));
+  if (personFilter) rows = rows.filter((r: any) => r.assigneeIds.includes(personFilter));
   if (q) rows = rows.filter((r: any) => r.title.toLowerCase().includes(q) || r.next_action.toLowerCase().includes(q));
 
   const groups = STATUS_ORDER.map((key) => ({
@@ -166,7 +178,9 @@ export default async function WorkPage({
                     <Link key={t.id} href={`/task/${t.id}`} className="card lift flex flex-col gap-1.5 p-3 hover:border-line2">
                       <span className="line-clamp-2 text-[13.5px] font-medium leading-snug">{t.title}</span>
                       <div className="flex items-center justify-between text-xs text-ink3">
-                        <span className="truncate">{(t as any).projectName || t.doerName}</span>
+                        <span className="truncate">
+                          {(t as any).projectName || (t.assignees.length ? t.assignees.map((a) => a.name).join(", ") : "Unassigned")}
+                        </span>
                         {t.priority === "high" && <span className="chip chip-red flex-none">High</span>}
                       </div>
                     </Link>

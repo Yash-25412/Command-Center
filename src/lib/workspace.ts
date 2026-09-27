@@ -4,6 +4,7 @@ import type { Person, Project, Category, Task } from "@/lib/types";
 
 export interface DecoratedTask extends Task {
   doer: Person | null;
+  assignees: Person[];
   project: Project | null;
   category: Category | null;
   due: ReturnType<typeof dueLabel>;
@@ -18,17 +19,25 @@ export interface DecoratedTask extends Task {
 
 export async function loadWorkspace() {
   const supabase = createClient();
-  const [{ data: tasks }, { data: people }, { data: projects }, { data: categories }] =
+  const [{ data: tasks }, { data: people }, { data: projects }, { data: categories }, { data: assigneeRows }] =
     await Promise.all([
       supabase.from("task").select("*").neq("status", "cancelled"),
       supabase.from("person").select("*").order("is_me", { ascending: false }),
       supabase.from("project").select("*"),
-      supabase.from("category").select("*")
+      supabase.from("category").select("*"),
+      supabase.from("task_assignee").select("task_id,person_id")
     ]);
 
   const peopleById = new Map((people || []).map((p) => [p.id, p]));
   const projectsById = new Map((projects || []).map((p) => [p.id, p]));
   const categoriesById = new Map((categories || []).map((c) => [c.id, c]));
+
+  const assigneeIdsByTask = new Map<string, string[]>();
+  (assigneeRows || []).forEach((r) => {
+    const list = assigneeIdsByTask.get(r.task_id) || [];
+    list.push(r.person_id);
+    assigneeIdsByTask.set(r.task_id, list);
+  });
 
   const today = new Date();
 
@@ -62,9 +71,15 @@ export async function loadWorkspace() {
       (t.status === "waiting" ? 1 : 0) +
       (stale ? 1 : 0);
 
+    const assigneeIds = assigneeIdsByTask.get(t.id) || (t.doer_id ? [t.doer_id] : []);
+    const assignees = assigneeIds
+      .map((id) => peopleById.get(id))
+      .filter((p): p is Person => !!p);
+
     return {
       ...t,
-      doer: t.doer_id ? peopleById.get(t.doer_id) || null : null,
+      doer: assignees[0] || null,
+      assignees,
       project: t.project_id ? projectsById.get(t.project_id) || null : null,
       category: t.category_id ? categoriesById.get(t.category_id) || null : null,
       due,

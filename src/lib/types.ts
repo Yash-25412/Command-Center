@@ -39,6 +39,11 @@ export interface Milestone {
   sort_order: number;
 }
 
+export interface TaskAssignee {
+  task_id: string;
+  person_id: string;
+}
+
 export interface Task {
   id: string;
   title: string;

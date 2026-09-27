@@ -7,6 +7,7 @@ drop table if exists entry cascade;
 drop table if exists link cascade;
 drop table if exists milestone cascade;
 drop table if exists routine cascade;
+drop table if exists task_assignee cascade;
 drop table if exists task cascade;
 drop table if exists project cascade;
 drop table if exists category cascade;
@@ -80,6 +81,13 @@ create table task (
   archived_at timestamptz
 );
 
+create table task_assignee (
+  task_id uuid not null references task(id) on delete cascade,
+  person_id uuid not null references person(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (task_id, person_id)
+);
+
 create table entry (
   id uuid primary key default gen_random_uuid(),
   task_id uuid references task(id) on delete cascade,
@@ -129,6 +137,8 @@ create table capture (
 create index task_status_idx on task(status);
 create index task_project_idx on task(project_id);
 create index task_doer_idx on task(doer_id);
+create index task_assignee_task_idx on task_assignee(task_id);
+create index task_assignee_person_idx on task_assignee(person_id);
 create index entry_task_idx on entry(task_id, occurred_at desc);
 create index entry_project_idx on entry(project_id, occurred_at desc);
 create index link_task_idx on link(task_id);
@@ -141,6 +151,7 @@ alter table category enable row level security;
 alter table project enable row level security;
 alter table milestone enable row level security;
 alter table task enable row level security;
+alter table task_assignee enable row level security;
 alter table entry enable row level security;
 alter table link enable row level security;
 alter table routine enable row level security;
@@ -151,6 +162,7 @@ create policy "authenticated full access" on category for all using (auth.role()
 create policy "authenticated full access" on project for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "authenticated full access" on milestone for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "authenticated full access" on task for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "authenticated full access" on task_assignee for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "authenticated full access" on entry for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "authenticated full access" on link for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "authenticated full access" on routine for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');

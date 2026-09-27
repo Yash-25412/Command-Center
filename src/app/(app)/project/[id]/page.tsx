@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { loadProjectDetail } from "@/lib/projects";
 import { addMilestone, toggleMilestone } from "@/app/actions/projects";
+import ProjectFieldText from "@/components/ProjectFieldText";
 import { fmtDate, fmtDateWeekday, initials } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -24,10 +25,22 @@ export default async function ProjectDetailPage({ params }: { params: { id: stri
 
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-3">
-          <h1 className="font-serif text-[36px] font-medium tracking-tight">{project.name}</h1>
+          <ProjectFieldText
+            projectId={project.id}
+            field="name"
+            value={project.name}
+            className="h-11 max-w-[520px] font-serif text-[26px] font-medium tracking-tight"
+          />
           <span className={`chip ${HEALTH_CLS[health.color]}`}>{health.label}</span>
         </div>
-        {project.objective && <p className="max-w-[760px] text-[15px] leading-relaxed text-ink2">{project.objective}</p>}
+        <ProjectFieldText
+          projectId={project.id}
+          field="objective"
+          value={project.objective || ""}
+          multiline
+          placeholder="What is this project trying to achieve?"
+          className="max-w-[760px] text-[15px] leading-relaxed"
+        />
       </div>
 
       <div className="card grid grid-cols-[1.6fr_1fr] gap-8 p-5">
@@ -64,7 +77,9 @@ export default async function ProjectDetailPage({ params }: { params: { id: stri
                 <Link key={t.id} href={`/task/${t.id}`} className="row-hover flex items-center gap-2.5 border-t border-line px-3.5 py-2.5 first:border-t-0">
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[13.5px] font-medium">{t.title}</div>
-                    <div className="truncate text-xs text-ink3">{t.next_action || t.doer?.name || "Unassigned"}</div>
+                    <div className="truncate text-xs text-ink3">
+                      {t.next_action || (t.assignees.length ? t.assignees.map((a) => (a.is_me ? "Me" : a.name)).join(", ") : "Unassigned")}
+                    </div>
                   </div>
                 </Link>
               ))}
