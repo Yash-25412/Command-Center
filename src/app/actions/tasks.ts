@@ -10,7 +10,7 @@ export async function quickAddTask(formData: FormData) {
   if (!raw) return;
 
   const supabase = createClient();
-  const { data: people } = await supabase.from("person").select("id,name");
+  const { data: people } = await supabase.from("person").select("id,name").eq("active", true);
   const parsed = parseQuickAdd(raw, (people || []).map((p) => p.name));
 
   const doer = (people || []).find(
@@ -71,7 +71,7 @@ export async function convertCapture(formData: FormData) {
   const text = String(formData.get("text") || "");
   const supabase = createClient();
 
-  const { data: people } = await supabase.from("person").select("id,name");
+  const { data: people } = await supabase.from("person").select("id,name").eq("active", true);
   const parsed = parseQuickAdd(text, (people || []).map((p) => p.name));
   const doer = (people || []).find(
     (p) => p.name.toLowerCase() === (parsed.doerName || "").toLowerCase()
