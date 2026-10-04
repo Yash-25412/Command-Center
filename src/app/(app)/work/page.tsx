@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import TaskRow, { RowTask } from "@/components/TaskRow";
-import { STATUS_META, STATUS_ORDER } from "@/lib/format";
+import { RowTask } from "@/components/TaskRow";
+import WorkView from "@/components/WorkView";
 
 export const dynamic = "force-dynamic";
 
@@ -65,26 +65,10 @@ export default async function WorkPage({
   if (personFilter) rows = rows.filter((r: any) => r.assigneeIds.includes(personFilter));
   if (q) rows = rows.filter((r: any) => r.title.toLowerCase().includes(q) || r.next_action.toLowerCase().includes(q));
 
-  const groups = STATUS_ORDER.map((key) => ({
-    key,
-    meta: STATUS_META[key],
-    items: rows.filter((r) => r.status === key)
-  })).filter((g) => g.items.length > 0);
-
   function scopeHref(s: string) {
     const params = new URLSearchParams();
     if (s !== "all") params.set("scope", s);
     if (q) params.set("q", q);
-    if (view === "board") params.set("view", "board");
-    return `/work${params.toString() ? `?${params.toString()}` : ""}`;
-  }
-
-  function viewHref(v: string) {
-    const params = new URLSearchParams();
-    if (scope !== "all") params.set("scope", scope);
-    if (personFilter) params.set("person", personFilter);
-    if (q) params.set("q", q);
-    if (v === "board") params.set("view", "board");
     return `/work${params.toString() ? `?${params.toString()}` : ""}`;
   }
 
@@ -95,7 +79,6 @@ export default async function WorkPage({
         <span className="text-ink3">{rows.length} item{rows.length === 1 ? "" : "s"}</span>
         <form action="/work" className="ml-auto flex items-center gap-2">
           {scope !== "all" && <input type="hidden" name="scope" value={scope} />}
-          {view === "board" && <input type="hidden" name="view" value="board" />}
           <input
             name="q"
             defaultValue={q}
@@ -103,14 +86,6 @@ export default async function WorkPage({
             className="field field-sm h-8 w-[220px] text-[13.5px]"
           />
         </form>
-        <div className="inline-flex gap-0.5 rounded-[10px] bg-sunk p-[3px]">
-          <Link href={viewHref("list")} className={`h-7 rounded-[7px] px-3 text-[13px] font-medium leading-7 ${view === "list" ? "bg-surface text-ink shadow-sm" : "text-ink2"}`}>
-            List
-          </Link>
-          <Link href={viewHref("board")} className={`h-7 rounded-[7px] px-3 text-[13px] font-medium leading-7 ${view === "board" ? "bg-surface text-ink shadow-sm" : "text-ink2"}`}>
-            Board
-          </Link>
-        </div>
       </div>
 
       <div className="flex items-center gap-2">
@@ -143,55 +118,7 @@ export default async function WorkPage({
           ))}
       </div>
 
-      {view === "list" ? (
-        <div className="flex flex-col gap-5">
-          {groups.map((g) => (
-            <section key={g.key} className="flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <span className="font-semibold">{g.meta.label}</span>
-                <span className="text-ink3">{g.items.length}</span>
-              </div>
-              <div className="card overflow-hidden">
-                {g.items.map((t) => (
-                  <TaskRow key={t.id} t={t} />
-                ))}
-              </div>
-            </section>
-          ))}
-          {rows.length === 0 && (
-            <div className="card p-10 text-center text-ink2">Nothing matches these filters.</div>
-          )}
-        </div>
-      ) : (
-        <div className="grid grid-cols-6 items-start gap-3">
-          {STATUS_ORDER.map((key) => {
-            const meta = STATUS_META[key];
-            const items = rows.filter((r) => r.status === key);
-            return (
-              <div key={key} className="flex min-w-0 flex-col gap-2">
-                <div className="flex items-center gap-1.5">
-                  <span className={`chip ${meta.className}`}>{meta.label}</span>
-                  <span className="text-xs text-ink3">{items.length}</span>
-                </div>
-                <div className="flex flex-col gap-2">
-                  {items.map((t) => (
-                    <Link key={t.id} href={`/task/${t.id}`} className="card lift flex flex-col gap-1.5 p-3 hover:border-line2">
-                      <span className="line-clamp-2 text-[13.5px] font-medium leading-snug">{t.title}</span>
-                      <div className="flex items-center justify-between text-xs text-ink3">
-                        <span className="truncate">
-                          {(t as any).projectName || (t.assignees.length ? t.assignees.map((a) => a.name).join(", ") : "Unassigned")}
-                        </span>
-                        {t.priority === "high" && <span className="chip chip-red flex-none">High</span>}
-                      </div>
-                    </Link>
-                  ))}
-                  {items.length === 0 && <div className="card p-3 text-center text-xs text-ink3">Empty</div>}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+      <WorkView initialView={view} rows={rows} />
     </div>
   );
 }

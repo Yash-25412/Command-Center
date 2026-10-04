@@ -2,18 +2,17 @@ import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import JourneyComposer from "@/components/JourneyComposer";
-import { changeStatus, followUp, resumeFromWaiting, addLink } from "@/app/actions/tasks";
+import { followUp, resumeFromWaiting, addLink } from "@/app/actions/tasks";
 import ProjectPicker from "@/components/ProjectPicker";
 import TaskFieldSelect from "@/components/TaskFieldSelect";
 import TaskFieldDate from "@/components/TaskFieldDate";
 import DeleteTaskButton from "@/components/DeleteTaskButton";
 import TaskAssignees from "@/components/TaskAssignees";
 import NextActionEditor from "@/components/NextActionEditor";
+import StatusPicker from "@/components/StatusPicker";
 import { STATUS_META, dueLabel, fmtDateWeekday, initials } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
-
-const STATUS_PICKS = ["planned", "active", "waiting", "blocked", "review", "done"];
 
 export default async function TaskDetailPage({ params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -207,26 +206,7 @@ export default async function TaskDetailPage({ params }: { params: { id: string 
 
           <div className="flex flex-col gap-2">
             <span className="text-xs font-semibold uppercase tracking-wide text-ink3">Change status</span>
-            <div className="flex flex-wrap gap-1.5">
-              {STATUS_PICKS.map((s) => {
-                const meta = STATUS_META[s];
-                const on = task.status === s;
-                return (
-                  <form action={changeStatus} key={s}>
-                    <input type="hidden" name="taskId" value={task.id} />
-                    <input type="hidden" name="from" value={task.status} />
-                    <input type="hidden" name="to" value={s} />
-                    <button
-                      className={`h-7 rounded-full border px-3 text-[13px] font-medium ${
-                        on ? "border-transparent bg-ink text-bg" : "border-line2 text-ink2 hover:bg-hover"
-                      }`}
-                    >
-                      {meta.label}
-                    </button>
-                  </form>
-                );
-              })}
-            </div>
+            <StatusPicker taskId={task.id} status={task.status} meta={STATUS_META} />
           </div>
         </aside>
       </div>
