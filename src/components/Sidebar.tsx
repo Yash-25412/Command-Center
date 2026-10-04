@@ -77,7 +77,7 @@ export default function Sidebar({
               key={n.href}
               href={n.href}
               className={`flex h-9 items-center gap-2.5 rounded-lg px-2.5 font-medium ${
-                on ? "bg-surface text-ink shadow-sm ring-1 ring-line" : "text-ink2 hover:bg-hover hover:text-ink"
+                on ? "bg-amberbg text-amber" : "text-ink2 hover:bg-hover hover:text-ink"
               }`}
             >
               <span className="flex-1">{n.label}</span>

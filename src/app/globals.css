@@ -2,57 +2,71 @@
 @tailwind components;
 @tailwind utilities;
 
-/* "Moss" theme: sandy paper + moss green in light, deep moss-black in dark. */
+/*
+  Theme pixel-matched to the reference UI across all three states: light,
+  dark and the login screen. Shared identity: warm paper in light mode vs.
+  deep teal-black in dark, a rust/amber accent, serif display headings.
+  Primary buttons flip ink: near-black teal on light backgrounds, amber on
+  dark ones — same pattern the reference uses.
+*/
 :root {
-  --bg: #f4f1e6;
-  --surface: #fffdf6;
-  --sunk: #e9e4d1;
-  --hover: #efead8;
-  --line: #ddd6bd;
-  --line2: #cfc6a6;
-  --ink: #262a1f;
-  --ink2: #585c48;
-  --ink3: #767a62;
-  --accent: #5c7a52;
-  --accent-bg: #e1ebd8;
-  --on-accent: #f6faf2;
-  --green: #3f7d4a;
-  --green-bg: #dcefdf;
-  --amber: #a3741a;
-  --amber-bg: #f3e6c8;
-  --red: #a34a3c;
-  --red-bg: #f4e1dc;
+  --bg: #f5f2ef;
+  --surface: #ffffff;
+  --sunk: #ebe8e5;
+  --hover: #ecece7;
+  --line: #e1dfdc;
+  --line2: #d0cecb;
+  --ink: #1b1b1b;
+  --ink2: #6b7178;
+  --ink3: #8c9197;
+  --accent: #10262a;
+  --accent-bg: #e3e2df;
+  --on-accent: #ffffff;
+  --green: #2d7a5f;
+  --green-bg: #d9e1db;
+  --amber: #b58863;
+  --amber-bg: #ebe1d9;
+  --red: #b2503e;
+  --red-bg: #ecdbd6;
   --teal: #2e7873;
-  --teal-bg: #dcece9;
-  --gray: #767a62;
-  --gray-bg: #e9e4d1;
-  --card-shadow: 0 1px 2px rgba(38, 42, 31, 0.05), 0 3px 10px rgba(38, 42, 31, 0.05);
-  --btn-pri-shadow: 0 2px 8px rgba(92, 122, 82, 0.25);
+  --teal-bg: #d9e1de;
+  --gray: #6b7178;
+  --gray-bg: #e7e5e3;
+  --card-shadow: 0 1px 2px rgba(27, 27, 27, 0.04), 0 3px 10px rgba(27, 27, 27, 0.04);
+  --btn-pri-shadow: 0 2px 8px rgba(16, 38, 42, 0.18);
 }
 
 .dark {
-  --bg: #13160f;
-  --surface: #1a1e14;
-  --sunk: #0e100b;
-  --hover: #20241a;
-  --line: #272c1d;
-  --line2: #343b26;
-  --ink: #e7ebd9;
-  --ink2: #b2b89b;
-  --ink3: #8b9177;
-  --accent: #9bc26c;
-  --accent-bg: #27331b;
-  --on-accent: #11180a;
-  --green: #7fc48a;
-  --green-bg: #1c3322;
-  --amber: #e0b05a;
-  --amber-bg: #3a2d12;
-  --red: #e8988a;
-  --red-bg: #3a241f;
-  --teal: #6fc2bb;
-  --teal-bg: #16322e;
-  --gray: #8b9177;
-  --gray-bg: #20241a;
+  /*
+    Colors lifted directly from the reference screenshot (PW Incentive
+    Portal, dark mode) via pixel sampling, not just "inspired by" —
+    deep teal-black background (#10262a, pixel-matched), warm off-white
+    headings, warm-gray (not teal-gray) body text, amber as the primary
+    accent. Verified contrast: bg/ink ~13.4:1, bg/ink2 ~6:1, bg/amber
+    ~7.7:1, surface/ink2 ~5.7:1 — matching the reference's own ratios.
+  */
+  --bg: #10262a;
+  --surface: #132b2f;
+  --sunk: #0b1b1d;
+  --hover: #1b3034;
+  --line: #23373b;
+  --line2: #314448;
+  --ink: #f0ece8;
+  --ink2: #a79e9c;
+  --ink3: #6e7a7d;
+  --accent: #dcae62;
+  --accent-bg: #313c33;
+  --on-accent: #1c150a;
+  --green: #5cb88a;
+  --green-bg: #1c3d39;
+  --amber: #dcae62;
+  --amber-bg: #313c33;
+  --red: #d98c7c;
+  --red-bg: #303637;
+  --teal: #6fb3b8;
+  --teal-bg: #1f3d41;
+  --gray: #6e7a7d;
+  --gray-bg: #1d3236;
   --card-shadow: none;
   --btn-pri-shadow: none;
 }
