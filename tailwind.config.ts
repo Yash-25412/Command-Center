@@ -30,8 +30,8 @@ const config: Config = {
         graybg: "var(--gray-bg)"
       },
       fontFamily: {
-        sans: ["var(--font-geist)", "system-ui", "sans-serif"],
-        serif: ["var(--font-newsreader)", "Georgia", "serif"]
+        sans: ["Manrope", "system-ui", "sans-serif"],
+        serif: ["Source Serif 4", "Georgia", "serif"]
       },
       borderRadius: {
         xl2: "14px"
