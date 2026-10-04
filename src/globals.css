@@ -32,36 +32,35 @@
 
 .dark {
   /*
-    Recalibrated for extended reading comfort. Two changes from the first
-    cut of this theme: the background is a deep but tinted moss (not
-    near-black) so edges don't "glow" against pure dark, and most running
-    text uses a dimmer --ink2 instead of near-white --ink, which is now
-    reserved for headings/short labels. Accent and status colors are
-    desaturated a notch rather than neon-bright. Verified against WCAG
-    contrast: surface/ink ~8.1:1, surface/ink2 ~4.9:1, bg/accent ~6.8:1.
+    Colors lifted directly from the reference screenshot (PW Incentive
+    Portal, dark mode) via pixel sampling, not just "inspired by" —
+    deep teal-black background (#10262a, pixel-matched), warm off-white
+    headings, warm-gray (not teal-gray) body text, amber as the primary
+    accent. Verified contrast: bg/ink ~13.4:1, bg/ink2 ~6:1, bg/amber
+    ~7.7:1, surface/ink2 ~5.7:1 — matching the reference's own ratios.
   */
-  --bg: #222d1c;
-  --surface: #304029;
-  --sunk: #1c2517;
-  --hover: #293622;
-  --line: #33412c;
-  --line2: #415338;
-  --ink: #daddd8;
-  --ink2: #a5afa1;
-  --ink3: #899683;
-  --accent: #89c16e;
-  --accent-bg: #2c4022;
-  --on-accent: #172112;
-  --green: #7dc194;
-  --green-bg: #263a2c;
-  --amber: #cab072;
-  --amber-bg: #3d3523;
-  --red: #daa69e;
-  --red-bg: #3d2623;
-  --teal: #80bdc2;
-  --teal-bg: #26383a;
-  --gray: #899683;
-  --gray-bg: #2f322e;
+  --bg: #10262a;
+  --surface: #132b2f;
+  --sunk: #0b1b1d;
+  --hover: #1b3034;
+  --line: #23373b;
+  --line2: #314448;
+  --ink: #f0ece8;
+  --ink2: #a79e9c;
+  --ink3: #6e7a7d;
+  --accent: #dcae62;
+  --accent-bg: #313c33;
+  --on-accent: #1c150a;
+  --green: #5cb88a;
+  --green-bg: #1c3d39;
+  --amber: #dcae62;
+  --amber-bg: #313c33;
+  --red: #d98c7c;
+  --red-bg: #303637;
+  --teal: #6fb3b8;
+  --teal-bg: #1f3d41;
+  --gray: #6e7a7d;
+  --gray-bg: #1d3236;
   --card-shadow: none;
   --btn-pri-shadow: none;
 }
