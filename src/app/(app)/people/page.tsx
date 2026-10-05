@@ -8,7 +8,11 @@ export const dynamic = "force-dynamic";
 export default async function PeoplePage() {
   const { tasks, people } = await loadWorkspace();
   const team = people.filter((p) => !p.is_me && p.active);
-  const everyone = people.filter((p) => !p.is_me);
+  // Include the "is_me" row here too — it was previously excluded, which
+  // meant there was no way to rename yourself (and Quick Add's "Name:"
+  // shorthand only matches your actual stored name, so being stuck with
+  // whatever it was seeded as broke "Yash:"-style entries).
+  const everyone = people;
   const openTasks = tasks.filter((t) => t.isOpen);
 
   const rows = team.map((p) => {
@@ -97,6 +101,7 @@ export default async function PeoplePage() {
                   className="field field-sm h-8 flex-1 text-[13.5px]"
                   style={p.active ? undefined : { opacity: 0.6 }}
                 />
+                {p.is_me && <span className="chip chip-accent flex-none">You</span>}
                 <input
                   name="role"
                   defaultValue={p.role || ""}
@@ -107,13 +112,15 @@ export default async function PeoplePage() {
                   Save
                 </button>
               </form>
-              <form action={setPersonActive}>
-                <input type="hidden" name="personId" value={p.id} />
-                <input type="hidden" name="active" value={String(!p.active)} />
-                <button type="submit" className={`btn btn-sm ${p.active ? "" : "btn-pri"}`}>
-                  {p.active ? "Remove" : "Restore"}
-                </button>
-              </form>
+              {!p.is_me && (
+                <form action={setPersonActive}>
+                  <input type="hidden" name="personId" value={p.id} />
+                  <input type="hidden" name="active" value={String(!p.active)} />
+                  <button type="submit" className={`btn btn-sm ${p.active ? "" : "btn-pri"}`}>
+                    {p.active ? "Remove" : "Restore"}
+                  </button>
+                </form>
+              )}
             </div>
           ))}
           {everyone.length === 0 && <div className="p-3.5 text-[13px] text-ink3">Nobody added yet.</div>}
