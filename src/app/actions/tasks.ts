@@ -10,13 +10,16 @@ export async function quickAddTask(formData: FormData) {
   if (!raw) return;
 
   const supabase = createClient();
-  const { data: people } = await supabase.from("person").select("id,name").eq("active", true);
+  const { data: people } = await supabase.from("person").select("id,name,is_me").eq("active", true);
   const parsed = parseQuickAdd(raw, (people || []).map((p) => p.name));
 
   const doer = (people || []).find(
     (p) => p.name.toLowerCase() === (parsed.doerName || "").toLowerCase()
   );
-  const me = (people || []).find((p) => p.name === "Me");
+  // Match by the is_me flag, not a literal "Me" string — the self person's
+  // display name can be anything (e.g. renamed to "Yash"), and "Me:" should
+  // still work as shorthand for whoever that is.
+  const me = (people || []).find((p) => p.is_me);
 
   let categoryId: string | null = null;
   if (parsed.categoryName) {
@@ -77,12 +80,12 @@ export async function convertCapture(formData: FormData) {
   const text = String(formData.get("text") || "");
   const supabase = createClient();
 
-  const { data: people } = await supabase.from("person").select("id,name").eq("active", true);
+  const { data: people } = await supabase.from("person").select("id,name,is_me").eq("active", true);
   const parsed = parseQuickAdd(text, (people || []).map((p) => p.name));
   const doer = (people || []).find(
     (p) => p.name.toLowerCase() === (parsed.doerName || "").toLowerCase()
   );
-  const me = (people || []).find((p) => p.name === "Me");
+  const me = (people || []).find((p) => p.is_me);
   const title = parsed.title || text;
 
   const { data: task, error } = await supabase
