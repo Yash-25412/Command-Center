@@ -71,6 +71,76 @@
   --btn-pri-shadow: none;
 }
 
+/*
+  Life mode's own identity — warm clay/plum instead of Work's cool teal.
+  Applied via a "life" class on <html> alongside (never instead of) "dark",
+  so every existing .card/.btn/.chip/.field rule works unchanged — only the
+  variables they read from change. --plum/--plum-bg are new: Life's second
+  accent (used for the Trading journey specifically), with no Work-mode
+  equivalent, so they're only meaningful here.
+*/
+.life {
+  --bg: #faf4ec;
+  --surface: #fffbf6;
+  --sunk: #f1e7da;
+  --hover: #ecdfd0;
+  --line: #ecdfd0;
+  --line2: #ddcdb8;
+  --ink: #2a2017;
+  --ink2: #7d6c5a;
+  --ink3: #a2927e;
+  --accent: #c1522c;
+  --accent-bg: #f1ddd0;
+  --on-accent: #ffffff;
+  --green: #7c8c52;
+  --green-bg: #e4e8d6;
+  --amber: #c99a3a;
+  --amber-bg: #f3e6c9;
+  --red: #9a4a26;
+  --red-bg: #f1ddd5;
+  --teal: #2e7873;
+  --teal-bg: #d9e1de;
+  --gray: #a2927e;
+  --gray-bg: #f1e7da;
+  --plum: #6d3753;
+  --plum-bg: #ecdfe4;
+  --card-shadow: 0 1px 2px rgba(42, 32, 23, 0.05), 0 3px 10px rgba(42, 32, 23, 0.05);
+  --btn-pri-shadow: 0 2px 8px rgba(193, 82, 44, 0.22);
+}
+
+.life.dark {
+  /*
+    Same eye-comfort approach as Work's dark mode: a tinted (not pure black)
+    background, bright ink reserved for headings, dimmer ink2 for body text.
+  */
+  --bg: #1c140e;
+  --surface: #251b13;
+  --sunk: #140d08;
+  --hover: #2c2017;
+  --line: #2f2318;
+  --line2: #3d2d1d;
+  --ink: #f0e6da;
+  --ink2: #b3a192;
+  --ink3: #8a7a6a;
+  --accent: #e38a57;
+  --accent-bg: #3d2d1d;
+  --on-accent: #1c140e;
+  --green: #a3b87d;
+  --green-bg: #2a3a22;
+  --amber: #d9ac56;
+  --amber-bg: #3d3320;
+  --red: #d98a72;
+  --red-bg: #3a2420;
+  --teal: #6fb3b8;
+  --teal-bg: #1f3d41;
+  --gray: #8a7a6a;
+  --gray-bg: #2f322e;
+  --plum: #c084a0;
+  --plum-bg: #3a2733;
+  --card-shadow: none;
+  --btn-pri-shadow: none;
+}
+
 body {
   background: var(--bg);
   color: var(--ink);

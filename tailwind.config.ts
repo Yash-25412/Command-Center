@@ -27,7 +27,9 @@ const config: Config = {
         teal: "var(--teal)",
         tealbg: "var(--teal-bg)",
         gray: "var(--gray)",
-        graybg: "var(--gray-bg)"
+        graybg: "var(--gray-bg)",
+        plum: "var(--plum)",
+        plumbg: "var(--plum-bg)"
       },
       fontFamily: {
         sans: ["Manrope", "system-ui", "sans-serif"],
