@@ -6,8 +6,8 @@ import { deleteTradeImage } from "@/app/actions/life";
 
 export const dynamic = "force-dynamic";
 
-function fmtMoney(n: number) {
-  return (n >= 0 ? "+₹" : "-₹") + Math.abs(Math.round(n)).toLocaleString("en-IN");
+function fmtPoints(n: number) {
+  return (n >= 0 ? "+" : "-") + Math.abs(n).toFixed(1) + " pts";
 }
 
 export default async function TradeDetailPage({ params }: { params: { id: string } }) {
@@ -45,22 +45,32 @@ export default async function TradeDetailPage({ params }: { params: { id: string
           <span className="text-[13px] text-ink3">{trade.date}</span>
         </div>
         <span className={`font-serif text-2xl font-semibold ${pnl >= 0 ? "text-green" : "text-accent"}`}>
-          {fmtMoney(pnl)}
+          {fmtPoints(pnl)}
         </span>
       </div>
 
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <div className="card flex flex-col p-4">
           <span className="text-[11px] font-semibold uppercase tracking-wide text-ink3">Entry</span>
           <span className="font-mono mt-1 text-lg">{trade.entry ?? "—"}</span>
+        </div>
+        <div className="card flex flex-col p-4">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-ink3">Stop loss</span>
+          <span className="font-mono mt-1 text-lg">{trade.sl ?? "—"}</span>
+        </div>
+        <div className="card flex flex-col p-4">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-ink3">Target</span>
+          <span className="font-mono mt-1 text-lg">{trade.tp ?? "—"}</span>
         </div>
         <div className="card flex flex-col p-4">
           <span className="text-[11px] font-semibold uppercase tracking-wide text-ink3">Exit</span>
           <span className="font-mono mt-1 text-lg">{trade.exit ?? "—"}</span>
         </div>
         <div className="card flex flex-col p-4">
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-ink3">R multiple</span>
-          <span className="font-mono mt-1 text-lg">{trade.r_multiple ?? "—"}</span>
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-ink3">Realized R</span>
+          <span className="font-mono mt-1 text-lg">
+            {trade.r_multiple !== null ? `${Number(trade.r_multiple) >= 0 ? "+" : ""}${Number(trade.r_multiple).toFixed(2)}R` : "—"}
+          </span>
         </div>
         <div className="card flex flex-col p-4">
           <span className="text-[11px] font-semibold uppercase tracking-wide text-ink3">Setup</span>

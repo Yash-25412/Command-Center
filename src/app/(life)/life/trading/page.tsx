@@ -6,8 +6,8 @@ import EquityCurve from "@/components/life/EquityCurve";
 
 export const dynamic = "force-dynamic";
 
-function fmtMoney(n: number) {
-  return (n >= 0 ? "+₹" : "-₹") + Math.abs(Math.round(n)).toLocaleString("en-IN");
+function fmtPoints(n: number) {
+  return (n >= 0 ? "+" : "-") + Math.abs(n).toFixed(1) + " pts";
 }
 
 export default async function TradingPage() {
@@ -44,11 +44,11 @@ export default async function TradingPage() {
   });
 
   const stats = [
-    { label: "Net P&L", value: fmtMoney(net), positive: net >= 0 },
+    { label: "Net points", value: fmtPoints(net), positive: net >= 0 },
     { label: "Win rate", value: `${winRate}%`, positive: true },
     { label: "Profit factor", value: profitFactor, positive: true },
     { label: "Avg R", value: avgR, positive: parseFloat(avgR) >= 0 },
-    { label: "Max drawdown", value: fmtMoney(maxDD), positive: false },
+    { label: "Max drawdown", value: fmtPoints(maxDD), positive: false },
     { label: "Trades logged", value: String(all.length), positive: true }
   ];
 

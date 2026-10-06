@@ -17,8 +17,8 @@ type Trade = {
   imageCount: number;
 };
 
-function fmtMoney(n: number) {
-  return (n >= 0 ? "+₹" : "-₹") + Math.abs(Math.round(n)).toLocaleString("en-IN");
+function fmtPoints(n: number) {
+  return (n >= 0 ? "+" : "-") + Math.abs(n).toFixed(1);
 }
 
 export default function TradeExplorer({ trades }: { trades: Trade[] }) {
@@ -101,13 +101,13 @@ export default function TradeExplorer({ trades }: { trades: Trade[] }) {
             let bg = "var(--sunk)";
             let fg = "var(--ink3)";
             if (cell.pnl !== undefined) {
-              if (cell.pnl > 3000) {
+              if (cell.pnl > 20) {
                 bg = "var(--green)";
                 fg = "#fff";
               } else if (cell.pnl > 0) {
                 bg = "var(--green-bg)";
                 fg = "var(--green)";
-              } else if (cell.pnl < -2000) {
+              } else if (cell.pnl < -20) {
                 bg = "var(--accent)";
                 fg = "#fff";
               } else {
@@ -154,7 +154,7 @@ export default function TradeExplorer({ trades }: { trades: Trade[] }) {
               <th className="px-3.5 py-2.5 text-left text-[11px] font-bold uppercase tracking-wide text-ink3">Side</th>
               <th className="px-3.5 py-2.5 text-right text-[11px] font-bold uppercase tracking-wide text-ink3">Entry</th>
               <th className="px-3.5 py-2.5 text-right text-[11px] font-bold uppercase tracking-wide text-ink3">Exit</th>
-              <th className="px-3.5 py-2.5 text-right text-[11px] font-bold uppercase tracking-wide text-ink3">P&amp;L</th>
+              <th className="px-3.5 py-2.5 text-right text-[11px] font-bold uppercase tracking-wide text-ink3">Points</th>
               <th className="px-3.5 py-2.5 text-right text-[11px] font-bold uppercase tracking-wide text-ink3">R</th>
               <th className="px-3.5 py-2.5 text-left text-[11px] font-bold uppercase tracking-wide text-ink3">Setup</th>
               <th className="px-3.5 py-2.5 text-left text-[11px] font-bold uppercase tracking-wide text-ink3">Notes</th>
@@ -181,7 +181,7 @@ export default function TradeExplorer({ trades }: { trades: Trade[] }) {
                     t.pnl >= 0 ? "text-green" : "text-accent"
                   }`}
                 >
-                  {fmtMoney(t.pnl)}
+                  {fmtPoints(t.pnl)}
                 </td>
                 <td className={`px-3.5 py-2.5 text-right font-mono text-[12.5px] ${t.pnl >= 0 ? "text-green" : "text-accent"}`}>
                   {t.r !== null ? (t.r >= 0 ? `+${t.r.toFixed(1)}` : t.r.toFixed(1)) : "—"}

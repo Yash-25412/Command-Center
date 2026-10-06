@@ -49,7 +49,7 @@ export default async function LifeDashboard() {
               />
             </div>
             <span className="mt-2.5 text-xs text-ink3">
-              {netPnl >= 0 ? `+₹${netPnl.toLocaleString("en-IN")}` : `-₹${Math.abs(netPnl).toLocaleString("en-IN")}`} net so far →
+              {netPnl >= 0 ? `+${netPnl.toFixed(1)}` : `-${Math.abs(netPnl).toFixed(1)}`} pts net so far →
             </span>
           </Link>
         )}

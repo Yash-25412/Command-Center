@@ -134,22 +134,54 @@ export async function toggleHabitDay(formData: FormData) {
 
 // ---------- Trading journal ----------
 
+// Points captured and realized R are always derived from entry/sl/tp/exit —
+// never typed in by hand — so a win/loss always matches what actually
+// happened on the chart, for both Long and Short trades.
+function calcTradeMath(side: string, entry: number | null, sl: number | null, tp: number | null, exit: number | null) {
+  let points: number | null = null;
+  if (entry !== null && exit !== null) {
+    points = side === "Short" ? entry - exit : exit - entry;
+  }
+
+  const risk = entry !== null && sl !== null ? Math.abs(entry - sl) : null;
+  const reward = entry !== null && tp !== null ? Math.abs(tp - entry) : null;
+
+  const plannedRR = risk && reward ? reward / risk : null;
+  const realizedR = risk && points !== null ? points / risk : null;
+
+  return { points, plannedRR, realizedR };
+}
+
 export async function addTrade(formData: FormData) {
   const date = String(formData.get("date") || new Date().toISOString().slice(0, 10));
   const symbol = String(formData.get("symbol") || "").trim();
   const side = String(formData.get("side") || "Long");
-  const entry = Number(formData.get("entry")) || null;
-  const exit = Number(formData.get("exit")) || null;
-  const pnl = Number(formData.get("pnl")) || 0;
-  const rMultiple = formData.get("rMultiple") ? Number(formData.get("rMultiple")) : null;
+  const entry = formData.get("entry") ? Number(formData.get("entry")) : null;
+  const sl = formData.get("sl") ? Number(formData.get("sl")) : null;
+  const tp = formData.get("tp") ? Number(formData.get("tp")) : null;
+  const exit = formData.get("exit") ? Number(formData.get("exit")) : null;
   const setup = String(formData.get("setup") || "").trim() || null;
   const notes = String(formData.get("notes") || "").trim();
   if (!symbol) return;
 
+  const { points, realizedR } = calcTradeMath(side, entry, sl, tp, exit);
+
   const supabase = createClient();
   const { data: trade, error } = await supabase
     .from("trade")
-    .insert({ date, symbol, side, entry, exit, pnl, r_multiple: rMultiple, setup, notes })
+    .insert({
+      date,
+      symbol,
+      side,
+      entry,
+      exit,
+      sl,
+      tp,
+      pnl: points ?? 0, // "pnl" stores POINTS captured, not a rupee amount
+      r_multiple: realizedR,
+      setup,
+      notes
+    })
     .select("id")
     .single();
 
