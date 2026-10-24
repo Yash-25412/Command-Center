@@ -10,7 +10,8 @@ import DeleteTaskButton from "@/components/DeleteTaskButton";
 import TaskAssignees from "@/components/TaskAssignees";
 import NextActionEditor from "@/components/NextActionEditor";
 import StatusPicker from "@/components/StatusPicker";
-import { STATUS_META, dueLabel, fmtDateWeekday, initials } from "@/lib/format";
+import TaskFlagPanel from "@/components/TaskFlagPanel";
+import { STATUS_META, FLAG_META, dueLabel, fmtDateWeekday, initials } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -68,6 +69,12 @@ export default async function TaskDetailPage({ params }: { params: { id: string 
               </span>
               <span className={`chip ${due.cls}`}>{due.label}</span>
               {category && <span className="chip">{category.name}</span>}
+              {task.flag_type && (
+                <span className={`chip ${FLAG_META[task.flag_type].cls}`}>
+                  {FLAG_META[task.flag_type].label}
+                  {task.flag_date ? ` · ${fmtDateWeekday(task.flag_date)}` : ""}
+                </span>
+              )}
             </div>
           </div>
 
@@ -202,12 +209,16 @@ export default async function TaskDetailPage({ params }: { params: { id: string 
             </FieldRow>
           </div>
 
-          <DeleteTaskButton taskId={task.id} taskTitle={task.title} />
-
           <div className="flex flex-col gap-2">
             <span className="text-xs font-semibold uppercase tracking-wide text-ink3">Change status</span>
             <StatusPicker taskId={task.id} status={task.status} meta={STATUS_META} />
           </div>
+
+          <div className="card px-4 py-3.5">
+            <TaskFlagPanel taskId={task.id} flagType={task.flag_type} flagDate={task.flag_date} flagNote={task.flag_note} />
+          </div>
+
+          <DeleteTaskButton taskId={task.id} taskTitle={task.title} />
         </aside>
       </div>
     </div>
