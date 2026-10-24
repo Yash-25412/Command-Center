@@ -19,7 +19,7 @@ export default async function WorkPage({
   const [{ data: tasks }, { data: people }, { data: projects }, { data: assigneeRows }] = await Promise.all([
     supabase
       .from("task")
-      .select("id,title,status,priority,due_date,next_action,doer_id,project_id,description")
+      .select("id,title,status,priority,due_date,next_action,doer_id,project_id,description,flag_type,flag_date")
       .neq("status", "cancelled")
       .order("due_date", { ascending: true, nullsFirst: false }),
     supabase.from("person").select("id,name,is_me,hue,active"),
@@ -55,6 +55,8 @@ export default async function WorkPage({
       doerHue: first?.hue ?? 200,
       projectName: pr?.name || null,
       assignees: assignedPeople.map((p) => ({ id: p.id, name: p.name, is_me: p.is_me, hue: p.hue })),
+      flag_type: t.flag_type,
+      flag_date: t.flag_date,
       doerId: t.doer_id,
       assigneeIds: assignedIds
     } as RowTask & { doerId: string | null; assigneeIds: string[] };
