@@ -3,7 +3,56 @@
 import { useState } from "react";
 import Link from "next/link";
 import TaskRow, { RowTask } from "@/components/TaskRow";
-import { STATUS_META, STATUS_ORDER } from "@/lib/format";
+import { STATUS_META, STATUS_ORDER, FLAG_META } from "@/lib/format";
+
+const FLAG_TABS: { key: "all" | "follow_up" | "update"; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "follow_up", label: FLAG_META.follow_up.label },
+  { key: "update", label: FLAG_META.update.label }
+];
+
+function StatusGroup({ meta, items }: { meta: { label: string; className: string }; items: RowTask[] }) {
+  const [tab, setTab] = useState<"all" | "follow_up" | "update">("all");
+
+  const counts = {
+    all: items.length,
+    follow_up: items.filter((t) => t.flag_type === "follow_up").length,
+    update: items.filter((t) => t.flag_type === "update").length
+  };
+  const flaggedCount = counts.follow_up + counts.update;
+  const shown = tab === "all" ? items : items.filter((t) => t.flag_type === tab);
+
+  return (
+    <section className="flex flex-col gap-2">
+      <div className="flex items-center gap-2">
+        <span className="font-semibold">{meta.label}</span>
+        <span className="text-ink3">{items.length}</span>
+      </div>
+      {flaggedCount > 0 && (
+        <div className="flex gap-1.5">
+          {FLAG_TABS.filter((f) => f.key === "all" || counts[f.key] > 0).map((f) => (
+            <button
+              key={f.key}
+              type="button"
+              onClick={() => setTab(f.key)}
+              className={`h-6 rounded-full border px-2.5 text-[11.5px] font-semibold ${
+                tab === f.key ? "border-transparent bg-ink text-bg" : "border-line2 text-ink2 hover:bg-hover"
+              }`}
+            >
+              {f.label} {f.key !== "all" && counts[f.key]}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="card overflow-hidden">
+        {shown.map((t) => (
+          <TaskRow key={t.id} t={t} />
+        ))}
+        {shown.length === 0 && <div className="p-5 text-center text-ink3">Nothing with this flag.</div>}
+      </div>
+    </section>
+  );
+}
 
 export default function WorkView({ initialView, rows }: { initialView: "list" | "board"; rows: RowTask[] }) {
   // List <-> Board is purely a different arrangement of data already on the
@@ -38,17 +87,7 @@ export default function WorkView({ initialView, rows }: { initialView: "list" | 
       {view === "list" ? (
         <div className="flex flex-col gap-5">
           {groups.map((g) => (
-            <section key={g.key} className="flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <span className="font-semibold">{g.meta.label}</span>
-                <span className="text-ink3">{g.items.length}</span>
-              </div>
-              <div className="card overflow-hidden">
-                {g.items.map((t) => (
-                  <TaskRow key={t.id} t={t} />
-                ))}
-              </div>
-            </section>
+            <StatusGroup key={g.key} meta={g.meta} items={g.items} />
           ))}
           {rows.length === 0 && (
             <div className="card p-10 text-center text-ink2">Nothing matches these filters.</div>

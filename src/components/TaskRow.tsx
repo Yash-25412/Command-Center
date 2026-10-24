@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { dueLabel, initials } from "@/lib/format";
+import { dueLabel, initials, FLAG_META } from "@/lib/format";
 
 export interface RowAssignee {
   id: string;
@@ -20,6 +20,8 @@ export interface RowTask {
   doerHue: number;
   projectName: string | null;
   assignees: RowAssignee[];
+  flag_type: "follow_up" | "update" | null;
+  flag_date: string | null;
 }
 
 export default function TaskRow({ t }: { t: RowTask }) {
@@ -38,6 +40,12 @@ export default function TaskRow({ t }: { t: RowTask }) {
         </div>
       </div>
       {t.priority === "high" && <span className="chip chip-red">High</span>}
+      {t.flag_type && (
+        <span className={`chip flex-none ${FLAG_META[t.flag_type].cls}`}>
+          {FLAG_META[t.flag_type].label}
+          {t.flag_date ? ` · ${t.flag_date.slice(5)}` : ""}
+        </span>
+      )}
       <div className="flex flex-none -space-x-1.5">
         {shown.length === 0 && (
           <span className="avatar h-[22px] w-[22px] flex-none text-[10px]" title="Unassigned">
