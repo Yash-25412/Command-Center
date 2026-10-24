@@ -11,7 +11,7 @@ import TaskAssignees from "@/components/TaskAssignees";
 import NextActionEditor from "@/components/NextActionEditor";
 import StatusPicker from "@/components/StatusPicker";
 import TaskFlagPanel from "@/components/TaskFlagPanel";
-import { STATUS_META, FLAG_META, dueLabel, fmtDateWeekday, initials } from "@/lib/format";
+import { STATUS_META, FLAG_META, taskDueLabel, fmtDateWeekday, initials } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +35,7 @@ export default async function TaskDetailPage({ params }: { params: { id: string 
   const assignees = (people || []).filter((p) => assigneeIds.includes(p.id));
   const project = projects?.find((p) => p.id === task.project_id);
   const category = categories?.find((c) => c.id === task.category_id);
-  const due = dueLabel(task.due_date);
+  const due = taskDueLabel(task.status, task.due_date);
   const status = STATUS_META[task.status];
 
   const assigneeOptions = (people || [])

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { dueLabel, initials, FLAG_META } from "@/lib/format";
+import { taskDueLabel, initials, FLAG_META } from "@/lib/format";
 
 export interface RowAssignee {
   id: string;
@@ -25,7 +25,7 @@ export interface RowTask {
 }
 
 export default function TaskRow({ t }: { t: RowTask }) {
-  const due = dueLabel(t.due_date);
+  const due = taskDueLabel(t.status, t.due_date);
   const shown = t.assignees.slice(0, 3);
   const extra = t.assignees.length - shown.length;
   return (

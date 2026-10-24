@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { daysBetween, dueLabel } from "@/lib/format";
+import { daysBetween, taskDueLabel } from "@/lib/format";
 import type { Person, Project, Category, Task } from "@/lib/types";
 
 export interface DecoratedTask extends Task {
@@ -7,7 +7,7 @@ export interface DecoratedTask extends Task {
   assignees: Person[];
   project: Project | null;
   category: Category | null;
-  due: ReturnType<typeof dueLabel>;
+  due: ReturnType<typeof taskDueLabel>;
   isOpen: boolean;
   overdue: boolean;
   stale: boolean;
@@ -43,7 +43,7 @@ export async function loadWorkspace() {
 
   const decorated: DecoratedTask[] = (tasks || []).map((t) => {
     const isOpen = t.status !== "done" && t.status !== "cancelled";
-    const due = dueLabel(t.due_date);
+    const due = taskDueLabel(t.status, t.due_date);
     const lastActivityDays = Math.max(0, daysBetween(today, new Date(t.last_activity_at)));
     const overdue = isOpen && due.overdue;
     const priorityThreshold = t.priority === "high" ? 3 : 7;

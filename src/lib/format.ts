@@ -47,6 +47,20 @@ export function dueLabel(due: string | null): { label: string; overdue: boolean;
   return { label: fmtDateWeekday(due), overdue: false, cls: "chip-gray" };
 }
 
+// Status-aware version of dueLabel — the "3d late" countdown only makes
+// sense while a task is still actively being worked. Once it's Done or
+// Blocked, the clock stops: Done shows a plain "Done" chip, Blocked shows
+// the due date without an escalating lateness count.
+export function taskDueLabel(status: string, due: string | null): { label: string; overdue: boolean; cls: string } {
+  if (status === "done") return { label: "Done", overdue: false, cls: "chip-green" };
+  if (status === "cancelled") return { label: "Cancelled", overdue: false, cls: "chip-gray" };
+  if (status === "blocked") {
+    if (!due) return { label: "No date", overdue: false, cls: "chip-red" };
+    return { label: fmtDateWeekday(due), overdue: false, cls: "chip-red" };
+  }
+  return dueLabel(due);
+}
+
 export function initials(name: string): string {
   const parts = name.trim().split(/\s+/);
   if (parts.length === 1) return parts[0].slice(0, 2);
