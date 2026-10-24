@@ -62,6 +62,10 @@ export async function loadWorkspace() {
         reasons.push({ label: "Follow up now", cls: "chip-amber" });
       if (stale) reasons.push({ label: `Stale ${lastActivityDays}d`, cls: "chip-amber" });
       if (noNextFlag) reasons.push({ label: "No next action", cls: "chip-amber" });
+      if (t.flag_date && daysBetween(new Date(t.flag_date), today) <= 0) {
+        const label = t.flag_type === "update" ? "Update due" : "Follow up due";
+        reasons.push({ label, cls: "chip-amber" });
+      }
     }
 
     const rank =

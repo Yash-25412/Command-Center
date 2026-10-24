@@ -10,6 +10,11 @@ export const STATUS_META: Record<string, { label: string; className: string }> =
 
 export const STATUS_ORDER = ["blocked", "active", "waiting", "review", "planned", "done"];
 
+export const FLAG_META: Record<string, { label: string; cls: string }> = {
+  follow_up: { label: "Follow-up", cls: "chip-amber" },
+  update: { label: "Update needed", cls: "chip-teal" }
+};
+
 export function fmtDate(d: string | null | undefined): string {
   if (!d) return "";
   const date = new Date(d + (d.length === 10 ? "T00:00:00" : ""));

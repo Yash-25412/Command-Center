@@ -62,6 +62,9 @@ export interface Task {
   follow_up_on: string | null;
   focus_on: string | null;
   promised_to: string | null;
+  flag_type: "follow_up" | "update" | null;
+  flag_date: string | null;
+  flag_note: string | null;
   last_activity_at: string;
   completed_at: string | null;
   created_at: string;
