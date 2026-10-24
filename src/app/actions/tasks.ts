@@ -213,17 +213,7 @@ export async function addLink(formData: FormData) {
   revalidatePath(`/task/${taskId}`);
 }
 
-const EDITABLE_FIELDS = new Set([
-  "doer_id",
-  "category_id",
-  "priority",
-  "due_date",
-  "next_action",
-  "created_at",
-  "flag_type",
-  "flag_date",
-  "flag_note"
-]);
+const EDITABLE_FIELDS = new Set(["doer_id", "category_id", "priority", "due_date", "next_action", "created_at"]);
 
 export async function updateTaskField(formData: FormData) {
   const taskId = String(formData.get("taskId"));
@@ -243,37 +233,6 @@ export async function updateTaskField(formData: FormData) {
     .eq("id", taskId);
 
   revalidatePath(`/task/${taskId}`);
-  revalidatePath("/work");
-  revalidatePath("/today");
-}
-
-export async function setTaskFlag(formData: FormData) {
-  const taskId = String(formData.get("taskId"));
-  const flagType = String(formData.get("flagType") || "") || null;
-  const flagDate = String(formData.get("flagDate") || "") || null;
-  const flagNote = String(formData.get("flagNote") || "").trim() || null;
-  if (!taskId || !flagType) return;
-
-  const supabase = createClient();
-  await supabase
-    .from("task")
-    .update({ flag_type: flagType, flag_date: flagDate, flag_note: flagNote, last_activity_at: new Date().toISOString() })
-    .eq("id", taskId);
-
-  revalidatePath(`/task/${taskId}`);
-  revalidatePath("/work");
-  revalidatePath("/today");
-}
-
-export async function clearTaskFlag(formData: FormData) {
-  const taskId = String(formData.get("taskId"));
-  if (!taskId) return;
-
-  const supabase = createClient();
-  await supabase.from("task").update({ flag_type: null, flag_date: null, flag_note: null }).eq("id", taskId);
-
-  revalidatePath(`/task/${taskId}`);
-  revalidatePath("/today");
   revalidatePath("/work");
 }
 
