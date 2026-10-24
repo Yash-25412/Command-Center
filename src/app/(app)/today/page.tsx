@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { loadWorkspace, DecoratedTask } from "@/lib/workspace";
-import { fmtDate, fmtDateWeekday, initials } from "@/lib/format";
+import { fmtDate, fmtDateWeekday, initials, FLAG_META } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -54,6 +54,10 @@ export default async function TodayPage() {
     .filter((t) => t.status === "waiting")
     .sort((a, b) => (a.follow_up_on || "9999").localeCompare(b.follow_up_on || "9999"));
 
+  const flagged = openTasks
+    .filter((t) => t.flag_type)
+    .sort((a, b) => (a.flag_date || "9999").localeCompare(b.flag_date || "9999"));
+
   const comingUp = openTasks
     .filter((t) => {
       if (!t.due_date) return false;
@@ -91,6 +95,7 @@ export default async function TodayPage() {
         <h1 className="font-serif text-[36px] font-medium tracking-tight leading-tight">{greeting}, Yash.</h1>
         <p className="text-[15px] text-ink2">
           {focus.length} on your plate today, {overdueCount} overdue, {waiting.length} waiting on others
+          {flagged.length > 0 ? `, ${flagged.length} flagged` : ""}
           {staleCount > 0 ? `, ${staleCount} stale` : ""}.
         </p>
       </div>
@@ -111,6 +116,26 @@ export default async function TodayPage() {
                 <Avatar t={t} />
               </Link>
             ))}
+          </Section>
+
+          <Section title="Needs follow-up" hint={`${flagged.length} flagged`}>
+            {flagged.length === 0 && <Empty>Nothing flagged. Flag a task from its detail page when it needs a follow-up or update by a date.</Empty>}
+            {flagged.map((t) => {
+              const meta = FLAG_META[t.flag_type!];
+              const isDue = t.flag_date ? t.flag_date <= today : false;
+              return (
+                <Link key={t.id} href={`/task/${t.id}`} className="row-hover flex items-center gap-3 border-t border-line px-4 py-3 first:border-t-0">
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-medium">{t.title}</div>
+                    <div className="truncate text-[13px] text-ink2">{t.flag_note || t.project?.name || "No project"}</div>
+                  </div>
+                  <span className={`chip ${isDue ? "chip-red" : meta.cls}`}>
+                    {t.flag_date ? fmtDateWeekday(t.flag_date) : meta.label}
+                  </span>
+                  <Avatar t={t} />
+                </Link>
+              );
+            })}
           </Section>
 
           <Section title="Needs attention" hint={`Top ${attention.length} by urgency`}>
