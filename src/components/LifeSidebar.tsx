@@ -34,7 +34,7 @@ export default function LifeSidebar() {
   }
 
   return (
-    <aside className="flex w-[232px] flex-none flex-col gap-[18px] border-r border-line px-3.5 py-[18px]">
+    <aside className="sidebar-glass flex w-[232px] flex-none flex-col gap-[18px] border-r border-line px-3.5 py-[18px]">
       <div className="flex items-center gap-2.5 px-2">
         <span className="font-serif text-[19px] font-medium tracking-tight">Command Center</span>
       </div>

@@ -8,6 +8,7 @@ import ModeToggle from "./ModeToggle";
 
 const NAV = [
   { href: "/today", label: "Today" },
+  { href: "/update", label: "Daily Update" },
   { href: "/inbox", label: "Inbox" },
   { href: "/work", label: "Work" },
   { href: "/projects", label: "Projects" },
@@ -45,7 +46,7 @@ export default function Sidebar({
   }
 
   return (
-    <aside className="flex w-[232px] flex-none flex-col gap-[18px] border-r border-line px-3.5 py-[18px]">
+    <aside className="sidebar-glass flex w-[232px] flex-none flex-col gap-[18px] border-r border-line px-3.5 py-[18px]">
       <div className="flex items-center gap-2.5 px-2">
         <span className="flex h-[26px] w-[26px] items-center justify-center rounded-lg bg-ink text-bg">
           <svg viewBox="0 0 24 24" className="h-[15px] w-[15px]" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
