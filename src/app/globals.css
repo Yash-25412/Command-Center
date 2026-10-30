@@ -147,8 +147,8 @@ body {
      without new variables — this is what gives the translucent .card and
      sidebar surfaces something to actually blur, instead of looking flat. */
   background:
-    radial-gradient(1200px 600px at 12% -10%, color-mix(in oklch, var(--accent) 12%, transparent), transparent 60%),
-    radial-gradient(900px 520px at 100% 0%, color-mix(in oklch, var(--teal) 10%, transparent), transparent 55%),
+    radial-gradient(1200px 600px at 12% -10%, color-mix(in oklch, var(--accent) 16%, transparent), transparent 60%),
+    radial-gradient(900px 520px at 100% 0%, color-mix(in oklch, var(--teal) 13%, transparent), transparent 55%),
     var(--bg);
   background-attachment: fixed;
   color: var(--ink);
@@ -190,19 +190,19 @@ body {
 .chip-gray { background: var(--gray-bg); color: var(--gray); }
 
 .card {
-  background: color-mix(in oklch, var(--surface) 78%, transparent);
+  background: color-mix(in oklch, var(--surface) 74%, transparent);
   border: 1px solid var(--line);
   border-radius: 16px;
   box-shadow: var(--card-shadow);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(22px) saturate(180%);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
   transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .sidebar-glass {
-  background: color-mix(in oklch, var(--surface) 68%, transparent);
-  backdrop-filter: blur(24px) saturate(160%);
-  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  background: color-mix(in oklch, var(--surface) 62%, transparent);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
   transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 

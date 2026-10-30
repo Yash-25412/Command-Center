@@ -2,6 +2,7 @@ import Link from "next/link";
 import { loadWorkspace, DecoratedTask } from "@/lib/workspace";
 import { fmtDate, fmtDateWeekday, initials, FLAG_META } from "@/lib/format";
 import QuickEdit from "@/components/QuickEdit";
+import ProgressRing from "@/components/ProgressRing";
 
 export const dynamic = "force-dynamic";
 
@@ -90,6 +91,11 @@ export default async function TodayPage() {
   const overdueCount = openTasks.filter((t) => t.overdue).length;
   const staleCount = openTasks.filter((t) => t.stale).length;
 
+  const doneTodayCount = tasks.filter(
+    (t) => t.status === "done" && t.completed_at && t.completed_at.slice(0, 10) === today
+  ).length;
+  const todayTotal = doneTodayCount + focus.length;
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1.5">
@@ -99,6 +105,27 @@ export default async function TodayPage() {
           {flagged.length > 0 ? `, ${flagged.length} flagged` : ""}
           {staleCount > 0 ? `, ${staleCount} stale` : ""}.
         </p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        <ProgressRing
+          pct={todayTotal ? (doneTodayCount / todayTotal) * 100 : 0}
+          display={`${doneTodayCount}/${todayTotal || 0}`}
+          label="Done today"
+          colorVar="--green"
+        />
+        <ProgressRing
+          pct={openTasks.length ? (flagged.length / openTasks.length) * 100 : 0}
+          display={`${flagged.length}`}
+          label="Flagged for follow-up"
+          colorVar="--amber"
+        />
+        <ProgressRing
+          pct={openTasks.length ? (overdueCount / openTasks.length) * 100 : 0}
+          display={`${overdueCount}`}
+          label="Overdue"
+          colorVar="--red"
+        />
       </div>
 
       <div className="grid grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)] items-start gap-7">
