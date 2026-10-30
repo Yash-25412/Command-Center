@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { loadWorkspace, DecoratedTask } from "@/lib/workspace";
 import { fmtDate, fmtDateWeekday, initials, FLAG_META } from "@/lib/format";
+import QuickEdit from "@/components/QuickEdit";
 
 export const dynamic = "force-dynamic";
 
@@ -114,6 +115,7 @@ export default async function TodayPage() {
                 </div>
                 <span className={`chip ${t.due.cls}`}>{t.due.label}</span>
                 <Avatar t={t} />
+                <QuickEdit t={{ id: t.id, due_date: t.due_date, flag_type: t.flag_type, flag_date: t.flag_date }} />
               </Link>
             ))}
           </Section>
@@ -133,6 +135,7 @@ export default async function TodayPage() {
                     {t.flag_date ? fmtDateWeekday(t.flag_date) : meta.label}
                   </span>
                   <Avatar t={t} />
+                  <QuickEdit t={{ id: t.id, due_date: t.due_date, flag_type: t.flag_type, flag_date: t.flag_date }} />
                 </Link>
               );
             })}
@@ -156,6 +159,7 @@ export default async function TodayPage() {
                   </span>
                 ))}
                 <Avatar t={t} />
+                <QuickEdit t={{ id: t.id, due_date: t.due_date, flag_type: t.flag_type, flag_date: t.flag_date }} />
               </Link>
             ))}
           </Section>

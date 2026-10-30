@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { taskDueLabel, initials, FLAG_META } from "@/lib/format";
+import QuickEdit from "@/components/QuickEdit";
 
 export interface RowAssignee {
   id: string;
@@ -69,6 +70,7 @@ export default function TaskRow({ t }: { t: RowTask }) {
         )}
       </div>
       <span className={`chip w-[92px] justify-center ${due.cls}`}>{due.label}</span>
+      <QuickEdit t={{ id: t.id, due_date: t.due_date, flag_type: t.flag_type, flag_date: t.flag_date }} />
     </Link>
   );
 }

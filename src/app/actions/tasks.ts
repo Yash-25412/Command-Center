@@ -277,6 +277,48 @@ export async function clearTaskFlag(formData: FormData) {
   revalidatePath("/work");
 }
 
+// Powers the "quick update" popover available right on task rows/cards (Today,
+// Work list, Work board) — lets due date, flag+date, and a quick note all be
+// changed in one go without opening the task detail page. Only touches the
+// fields actually present in the form, so it's safe to call with just one of
+// them set.
+export async function quickUpdate(formData: FormData) {
+  const taskId = String(formData.get("taskId") || "");
+  if (!taskId) return;
+
+  const supabase = createClient();
+  const patch: Record<string, unknown> = { last_activity_at: new Date().toISOString() };
+
+  if (formData.has("due_date")) {
+    patch.due_date = String(formData.get("due_date") || "").trim() || null;
+  }
+
+  if (formData.has("flag_type")) {
+    const flagType = String(formData.get("flag_type") || "").trim();
+    if (flagType) {
+      patch.flag_type = flagType;
+      patch.flag_date = String(formData.get("flag_date") || "").trim() || null;
+    } else {
+      patch.flag_type = null;
+      patch.flag_date = null;
+      patch.flag_note = null;
+    }
+  }
+
+  const note = String(formData.get("note") || "").trim();
+  if (note) patch.next_action = note;
+
+  await supabase.from("task").update(patch).eq("id", taskId);
+
+  if (note) {
+    await supabase.from("entry").insert({ task_id: taskId, kind: "update", body: note });
+  }
+
+  revalidatePath(`/task/${taskId}`);
+  revalidatePath("/work");
+  revalidatePath("/today");
+}
+
 export async function setTaskAssignees(formData: FormData) {
   const taskId = String(formData.get("taskId"));
   const personIds = formData.getAll("personIds").map(String).filter(Boolean);

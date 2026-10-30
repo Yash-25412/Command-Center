@@ -5,6 +5,7 @@ import Link from "next/link";
 import TaskRow, { RowTask } from "@/components/TaskRow";
 import { STATUS_META, STATUS_ORDER, FLAG_META } from "@/lib/format";
 import { changeStatus } from "@/app/actions/tasks";
+import QuickEdit from "@/components/QuickEdit";
 
 const FLAG_TABS: { key: "all" | "follow_up" | "update"; label: string }[] = [
   { key: "all", label: "All" },
@@ -160,11 +161,14 @@ export default function WorkView({ initialView, rows }: { initialView: "list" | 
                         setDraggingId(null);
                         setOverColumn(null);
                       }}
-                      className={`card lift kanban-card flex flex-col gap-1.5 p-3 hover:border-line2 ${
+                      className={`card lift kanban-card relative flex flex-col gap-1.5 p-3 pr-9 hover:border-line2 ${
                         draggingId === t.id ? "kanban-card-dragging" : ""
                       }`}
                     >
-                      <span className="line-clamp-2 text-[13.5px] font-medium leading-snug">{t.title}</span>
+                      <div className="absolute right-1.5 top-1.5">
+                        <QuickEdit t={{ id: t.id, due_date: t.due_date, flag_type: t.flag_type, flag_date: t.flag_date }} />
+                      </div>
+                      <span className="line-clamp-2 pr-1 text-[13.5px] font-medium leading-snug">{t.title}</span>
                       <div className="flex items-center justify-between text-xs text-ink3">
                         <span className="truncate">
                           {t.projectName || (t.assignees.length ? t.assignees.map((a) => a.name).join(", ") : "Unassigned")}
