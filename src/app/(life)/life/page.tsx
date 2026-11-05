@@ -34,6 +34,28 @@ export default async function LifeDashboard() {
         <h1 className="font-serif text-[34px] font-medium tracking-tight">Good to see you, Yash.</h1>
       </div>
 
+      <Link
+        href="/mastery"
+        className="lift flex items-center justify-between rounded-xl2 p-5"
+        style={{ background: "#11151A", border: "1px solid rgba(255,255,255,0.08)", color: "#E6EDF3" }}
+      >
+        <div className="flex flex-col gap-1">
+          <span
+            className="text-[10.5px] font-bold uppercase tracking-wide"
+            style={{ color: "#2DD4BF", fontFamily: "'JetBrains Mono', monospace" }}
+          >
+            Life // Mastery OS
+          </span>
+          <span className="font-serif text-xl font-medium">Piano · Handstand · Dragon Flag · Marathon</span>
+          <span className="mt-0.5 text-[13.5px]" style={{ color: "#8B949E" }}>
+            Full curricula, daily telemetry loggers, phase gates and the weekly schedule — one cockpit.
+          </span>
+        </div>
+        <span className="text-xl" style={{ color: "#2DD4BF" }}>
+          →
+        </span>
+      </Link>
+
       <div className="grid grid-cols-3 gap-4">
         {trading && (
           <Link href="/life/trading" className="card lift flex flex-col p-5">

@@ -1,0 +1,966 @@
+{
+  "title": "Zero to Mastery on Keys",
+  "lede": "One mechanical and theoretical engine that plays Für Elise, a Rahman-style ballad and a raga alaap with equal ease. Every Western idea is paired with its sargam equivalent, and every phase ends in a gate you can test and tick off.",
+  "assumptions": [
+    "Digital keyboard, 61 or 88 keys, non-weighted or semi-weighted, with touch (velocity) sensitivity switched ON",
+    "20 to 30 minutes of practice per day, 6 days a week, with one rest day",
+    "Sa is mapped to C by default (movable Sa is introduced in Phase 2)"
+  ],
+  "setup": [
+    {
+      "title": "Touch response",
+      "text": "Set velocity sensitivity to its firmest curve (often called 'Hard' or 'Heavy'). Light keys reward lazy fingers. A hard curve makes you put real arm weight into a forte and real restraint into a piano, which is the dynamic control an acoustic hammer action would otherwise teach you."
+    },
+    {
+      "title": "Bench height",
+      "text": "Sit so your forearm is level with or slightly above the keys, elbows a fist-width from your ribs, feet flat. Most people on a keyboard stand or a dining chair sit too low, which pushes the wrist up and loads the forearm tendons."
+    },
+    {
+      "title": "Sustain pedal",
+      "text": "Buy a piano-style (square box) sustain pedal, not the small plastic footswitch. You need it by Phase 3. Check its polarity setting so it does not work in reverse."
+    },
+    {
+      "title": "Headphones and recording",
+      "text": "Practise on headphones if you need to, but record yourself on your phone once a week from Phase 1. Your ears lie while you play; the recording does not."
+    },
+    {
+      "title": "Metronome and drone",
+      "text": "Use any free metronome app plus a tanpura drone app. The drone tunes your ear to Sa, which is the anchor for everything Indian you will play later."
+    },
+    {
+      "title": "Short practice rule",
+      "text": "When a key is non-weighted, tension creeps in because nothing pushes back. Every 5 minutes, drop your hands into your lap, shake them loose, then continue. This is built into every blueprint below."
+    }
+  ],
+  "phases": [
+    {
+      "id": "phase-1",
+      "num": "1",
+      "eyebrow": "Phase 1 · Weeks 1–4 · 4 weeks",
+      "title": "Keyboard Geography & Pulse",
+      "mechanicalSkill": "Relaxed, curved fingers that land on the fingertip pad from a loose wrist, with each finger able to play alone without its neighbours moving.",
+      "mentalModel": "The keyboard is a repeating 12-key map, not 88 separate keys. Every key has an address relative to Sa, and every note sits on a pulse.",
+      "theoryConcepts": [
+        {
+          "title": "Keyboard geometry",
+          "explanation": "The pattern of 2 and 3 black keys repeats every 12 keys. C sits just left of the 2-black-key group, F just left of the 3-group. Learn to find any key by its shape, not by counting from the bottom.",
+          "bridge": "Set Sa = C. The white keys from C to B are the seven shuddha swaras: Sa Re Ga Ma Pa Dha Ni. That is the Bilawal thaat, which is the Western C major scale."
+        },
+        {
+          "title": "Semitones and tones",
+          "explanation": "A semitone (half step) is the very next key, black or white. A tone (whole step) skips one key. There is no black key between E–F and B–C, so those pairs are semitones.",
+          "bridge": "The black keys between the shuddha swaras are the komal and tivra swaras: komal Re (C#), komal Ga (D#), tivra Ma (F#), komal Dha (G#), komal Ni (A#). The 12 keys of one octave are the 12 swara positions of Hindustani music."
+        },
+        {
+          "title": "Octaves and registers",
+          "explanation": "The same letter 12 keys higher is the octave: it sounds 'the same, but higher' because its frequency is doubled. Middle C (C4) is your home.",
+          "bridge": "Mandra saptak (lower octave, written with a dot below), madhya saptak (middle), taar saptak (upper, dot above). Sa' means upper Sa."
+        },
+        {
+          "title": "Pulse, tempo and beats",
+          "explanation": "Pulse is the steady heartbeat under music. Tempo is its speed in beats per minute (BPM). Quarter notes get one beat, half notes two, whole notes four, eighth notes half a beat.",
+          "bridge": "A matra is one beat of a taal. Counting '1 2 3 4' in Western music is the same act as counting matras. Saying 'Dha' on a beat is just a syllable instead of a number."
+        },
+        {
+          "title": "4/4 time and Keherwa",
+          "explanation": "4/4 means four quarter-note beats per bar, with a natural accent on beat 1. Count '1 & 2 & 3 & 4 &' to feel eighth notes.",
+          "bridge": "Keherwa taal has 8 matras (Dha Ge Na Ti | Na Ke Dhi Na). It feels like one bar of 4/4 counted in eighth notes, or two bars of 4/4 in quarters. Beat 1 is the sam, the landing point."
+        },
+        {
+          "title": "Finger numbers and posture",
+          "explanation": "Thumb = 1, index = 2, middle = 3, ring = 4, pinky = 5, on both hands. Hand shape: as if loosely holding a tennis ball. Play on the fingertip pad, with the nail joint firm (not collapsing).",
+          "bridge": "Fingering is fixed, unlike singing. The swara is the pitch; the finger number is the 'address' your hand uses to reach it."
+        },
+        {
+          "title": "Reading: letter names first, staff second",
+          "explanation": "This phase you read letter names and sargam. Only learn where Middle C, the treble G line and the bass F line sit on the staff. Full staff reading is spread across later phases, so it never stalls you.",
+          "bridge": "Write melodies as sargam with octave dots (Sa Re Ga Ma) and as letters (C D E F) side by side. That dual notation is your note-taking system for the whole program."
+        }
+      ],
+      "drills": [
+        {
+          "title": "Key-finder blitz",
+          "description": "Close your eyes, open them, find every F (or any named key) across the whole keyboard as fast as you can. Rotate the target key daily.",
+          "target": "All 12 keys, each found in under 2 seconds."
+        },
+        {
+          "title": "Five-finger pattern in C",
+          "description": "Thumb on C, one finger per key up to G. Play 1-2-3-4-5-4-3-2-1, one hand at a time, legato (connected), then staccato (bouncing).",
+          "target": "60 BPM quarter notes, rising to 80 BPM by week 4."
+        },
+        {
+          "title": "Five-finger pattern in G and F",
+          "description": "Same shape starting on G (G A B C D) and on F (F G A Bb C). Notice F needs a black key under finger 4.",
+          "target": "72 BPM, hands separately, even volume."
+        },
+        {
+          "title": "Finger-lift independence",
+          "description": "Rest all five fingers on C–G. Hold four keys down silently and lift only one finger 2 cm, then tap it 4 times. Cycle through 1 to 5. Fingers 4 and 5 will feel stuck; that is the point.",
+          "target": "Each finger lifts 4 times with no other key releasing."
+        },
+        {
+          "title": "Wrist drop-and-release",
+          "description": "Let the whole arm fall from the elbow onto one key through a loose wrist, then let the wrist rise and float off. Do this on fingers 2, 3 and 4. It teaches arm weight on light keys.",
+          "target": "10 drops per finger with a round, full tone and no tension afterward."
+        },
+        {
+          "title": "Hands-together mirror",
+          "description": "LH finger 5 on C3, RH thumb on C4. Play the 5-finger pattern in both hands at once (LH 5-4-3-2-1 while RH 1-2-3-4-5).",
+          "target": "60 BPM, 4 clean repetitions in a row."
+        }
+      ],
+      "dailyPractice": [
+        {
+          "time": "0–5 min",
+          "bpm": "60 BPM",
+          "label": "Warm-up & metronome locking",
+          "task": "Shake out hands. Clap quarter notes with the metronome at 60 BPM for 1 minute, then say 'Sa' on beat 1 and count 2-3-4. Then 10 wrist drops per hand."
+        },
+        {
+          "time": "5–15 min",
+          "bpm": "60 → 80 BPM",
+          "label": "Core technique",
+          "task": "Finger-lift independence (3 min), then five-finger patterns in C, G and F, hands separately, legato then staccato (7 min). Add 4 BPM when two clean runs feel easy."
+        },
+        {
+          "time": "15–22 min",
+          "bpm": "60–72 BPM",
+          "label": "Applied music / ear-to-key",
+          "task": "Sing a phrase in sargam against a C drone, then find it on the keys. Week 1–2: Sa Re Ga Ma Pa up and down. Week 3–4: the Ode to Joy theme (E E F G G F E D C C D E E D D) and the opening phrase of a song you know well, using only C to G."
+        },
+        {
+          "time": "22–25 min",
+          "bpm": "free BPM",
+          "label": "Cooldown / free play",
+          "task": "Black keys only, with the sustain held or the 'piano' sound reverb up. Play anything slowly. The five black keys are a pentatonic scale, so nothing sounds wrong."
+        }
+      ],
+      "offKeyboardHabit": {
+        "title": "Sargam walking",
+        "task": "On your walk, play a tanpura drone in one earbud. Sing Sa on your left footstep, Re on the next, up to Pa and back. Your steps are the matra; the drone is Sa. 10 minutes."
+      },
+      "resources": [
+        {
+          "name": "Pianote (YouTube)",
+          "kind": "Channel",
+          "description": "Clear beginner lessons on posture, hand shape and the first chords, taught with real hands on screen."
+        },
+        {
+          "name": "Bill Hilton (YouTube)",
+          "kind": "Channel",
+          "description": "Patient adult-beginner lessons that connect theory to what your fingers do. Start with his beginner lesson series."
+        },
+        {
+          "name": "Jazer Lee (YouTube, 'Learn Piano with Jazer Lee')",
+          "kind": "Channel",
+          "description": "Short, practical technique and learning-strategy videos aimed at self-taught players."
+        },
+        {
+          "name": "musictheory.net",
+          "kind": "Website (free)",
+          "description": "Interactive lessons on note names, the staff and rhythm. Use its keyboard and note identification exercises."
+        },
+        {
+          "name": "Riyaz (MusicMuni Labs, Android and iOS)",
+          "kind": "App",
+          "description": "Gives you a drone and pitch feedback while you sing sargam, which trains the swara-to-pitch link off the keyboard."
+        }
+      ],
+      "youtubeQueries": [
+        "piano hand position for beginners tension free",
+        "five finger position piano exercise beginner",
+        "arm weight piano technique beginner wrist drop",
+        "sargam on piano Sa Re Ga Ma C major explained",
+        "keherwa taal 8 beats explained counting"
+      ],
+      "gateCriteria": [
+        "Name and play any of the 12 keys called at random, anywhere on the keyboard, in under 2 seconds each (record a 12-key run).",
+        "Play five-finger patterns in C, G and F, each hand separately, at 80 BPM quarter notes, with even volume and no finger 4 or 5 collapse (check a phone video).",
+        "Hands together: C five-finger mirror pattern at 60 BPM, 4 repetitions without stopping.",
+        "Play the Ode to Joy theme with the right hand at 72 BPM while the left hand holds a low C (Sa drone), with no hesitation between notes.",
+        "Sing Sa to Pa and back against a drone, then play it, with the sung and played pitches matching."
+      ],
+      "whatToExpect": "Your 4th and 5th fingers will feel weak and will drag their neighbours with them. Your shoulders will rise without you noticing, and you will speed up on notes that feel easy and slow down on ones that feel hard.",
+      "breakthroughCues": [
+        "Heavy arm, light fingers: let the weight come from the elbow, the finger just transmits it.",
+        "Breathe out on beat 1 of every bar. Shoulders cannot stay raised on an exhale.",
+        "If finger 4 drags 3 with it, slow to 50 BPM and play only 3-4-3-4 for one minute."
+      ],
+      "fieldNotePrompts": [
+        "Which finger was the last to become independent, and what exactly made it click?",
+        "When did I notice tension first: shoulder, wrist or thumb? What cue released it?",
+        "Did singing the sargam before playing make finding the keys faster? By how much?"
+      ]
+    },
+    {
+      "id": "phase-2",
+      "num": "2",
+      "eyebrow": "Phase 2 · Weeks 5–10 · 6 weeks",
+      "title": "Scales, Intervals & the Two-Hand Engine",
+      "mechanicalSkill": "Thumb-under and finger-over crossings so the hand can travel beyond five notes, and a left hand that holds a root-fifth-octave shell steady while the right hand plays a melody.",
+      "mentalModel": "Every scale is a recipe of tones and semitones, and every interval has a sound you can recognise by ear. Sa can move: the same recipe built on G or D gives the same 'feel' in a new key.",
+      "theoryConcepts": [
+        {
+          "title": "The major scale formula",
+          "explanation": "Tone-Tone-Semitone-Tone-Tone-Tone-Semitone (W W H W W W H). Start on any key, follow the recipe, and you get that key's major scale. G major needs F#; D major needs F# and C#; F major needs Bb.",
+          "bridge": "This is Bilawal thaat on any Sa. When the song's Sa is G, Sa Re Ga Ma Pa Dha Ni = G A B C D E F#."
+        },
+        {
+          "title": "Movable Sa",
+          "explanation": "A key is just where Sa lives. Transposing means moving Sa and keeping the recipe. Indian singers often choose a Sa that suits their voice (for example 'Sa at G' or 'black 1/2/3' on harmonium).",
+          "bridge": "Harmonium players call keys by Sa position, such as 'safed 5' (white key 5 = G). Western musicians would call that the key of G."
+        },
+        {
+          "title": "Intervals by sound",
+          "explanation": "An interval is the distance between two notes in semitones. Learn these first: major 2nd (2), major 3rd (4), perfect 4th (5), perfect 5th (7), octave (12). Then minor 3rd (3) and minor 6th (8).",
+          "bridge": "Sa–Re = major 2nd, Sa–Ga = major 3rd, Sa–Ma = perfect 4th, Sa–Pa = perfect 5th, Sa–komal Ga = minor 3rd. Sa–Pa is the tanpura's own interval, which is why it sounds so stable."
+        },
+        {
+          "title": "The 1-5-8 power shell",
+          "explanation": "Left hand plays root (finger 5), fifth (finger 2 or 1) and octave (finger 1). It carries the bass and the harmony's frame without deciding major or minor, so it fits almost any melody.",
+          "bridge": "Sa–Pa–Sa' is exactly what a tanpura plays. The 1-5-8 shell is a 'tanpura with a beat', which is why it works under Indian melodies too."
+        },
+        {
+          "title": "Chord names you need now",
+          "explanation": "Read chord symbols on lead sheets: C, G, Am, F. A capital letter alone means major; 'm' means minor. For now, the left hand plays only the root and fifth of each symbol.",
+          "bridge": "Song chord charts on Indian sites use the same symbols. 'Am' means a chord built on Dha when Sa = C."
+        },
+        {
+          "title": "Eighth notes, dotted rhythms and 3/4",
+          "explanation": "Counting '1 & 2 &' for eighths. A dot adds half the note's value, so a dotted quarter lasts 1.5 beats. 3/4 has three beats per bar (waltz feel).",
+          "bridge": "Dadra taal (6 matras: Dha Dhi Na | Dha Ti Na) feels like 6/8: two groups of three. Many Bollywood ghazals and lullabies sit in Dadra."
+        },
+        {
+          "title": "Staff reading, step 2",
+          "explanation": "Read treble clef notes from Middle C to G5 and bass clef from G2 to Middle C, in steps and skips. 5 minutes a day is enough; the goal is slow, accurate reading, not speed.",
+          "bridge": "Keep writing every new melody in sargam too. You are building two parallel notations that check each other."
+        }
+      ],
+      "drills": [
+        {
+          "title": "Thumb-under preparation",
+          "description": "Right hand: play C with 1, D with 2, E with 3, then pass the thumb under to F while finger 3 is still holding E. Repeat the passing motion alone 10 times. Mirror it descending (finger 3 over the thumb).",
+          "target": "Thumb passes with no wrist jump or elbow flare, 10 times clean."
+        },
+        {
+          "title": "One-octave scales",
+          "description": "C, G, D and F major, one octave, hands separately, standard fingering (RH 1-2-3-1-2-3-4-5 for C, G, D). Then hands together in C and G.",
+          "target": "Hands separately 80 BPM eighths; hands together 60 BPM eighths."
+        },
+        {
+          "title": "Hanon No. 1 in rhythms",
+          "description": "Play Hanon exercise 1 (C to A ascending pattern) slowly, then vary the rhythm: straight eighths, long-short dotted, short-long, then triplets. The varied rhythms stop you from playing on autopilot.",
+          "target": "Each rhythm at 60 BPM, hands separately, then together."
+        },
+        {
+          "title": "1-5-8 shell changes",
+          "description": "LH plays 1-5-8 shells on C, G, A and F, held for 4 beats each, moving without looking down. Then pulse the shell on every beat.",
+          "target": "16 bars at 70 BPM without looking at the left hand."
+        },
+        {
+          "title": "Two-hand engine",
+          "description": "LH holds the shell for a whole bar; RH plays a simple melody in quarter notes. Then LH plays the root on beat 1 and the fifth+octave on beat 3 while RH continues.",
+          "target": "8 bars at 66 BPM, melody steady while the left hand moves."
+        }
+      ],
+      "dailyPractice": [
+        {
+          "time": "0–5 min",
+          "bpm": "70–80 BPM",
+          "label": "Warm-up & metronome locking",
+          "task": "Five-finger patterns from Phase 1 at 80 BPM as warm-up. Then 1 minute of metronome on beats 2 and 4 only (you supply 1 and 3), to lock your internal pulse."
+        },
+        {
+          "time": "5–15 min",
+          "bpm": "60 → 80 BPM",
+          "label": "Core technique / hand independence",
+          "task": "Thumb-under prep (2 min), then one scale of the day hands separately and together (4 min), then Hanon No. 1 in today's rhythm (4 min). Rotate C, G, D, F through the week."
+        },
+        {
+          "time": "15–22 min",
+          "bpm": "60–70 BPM",
+          "label": "Applied music / repertoire",
+          "task": "Pick one song built on the C–G–Am–F loop (search 'I V vi IV songs'; many Hindi film and pop songs use it). LH plays 1-5-8 shells, RH plays the melody, worked out by ear first and checked against a chart second."
+        },
+        {
+          "time": "22–25 min",
+          "bpm": "free BPM",
+          "label": "Cooldown / improvisation",
+          "task": "LH holds a C–G shell (Sa–Pa drone). RH improvises slowly using only Sa Re Ga Pa Dha (C D E G A). Try ending every phrase on Sa."
+        }
+      ],
+      "offKeyboardHabit": {
+        "title": "Interval ear-check",
+        "task": "At your desk or on a walk, use an ear-training app for 5 minutes of interval recognition limited to 2nd, 3rd, 4th, 5th and octave. Name each one aloud twice: 'major third, Sa–Ga'."
+      },
+      "resources": [
+        {
+          "name": "Bill Hilton (YouTube)",
+          "kind": "Channel",
+          "description": "Strong on scales, the thumb crossing and left-hand accompaniment basics."
+        },
+        {
+          "name": "Pianote (YouTube)",
+          "kind": "Channel",
+          "description": "Lessons on the I–V–vi–IV progression and playing chords with a melody on top."
+        },
+        {
+          "name": "Complete Ear Trainer (iOS / Android)",
+          "kind": "App",
+          "description": "Structured interval-recognition levels. Do the interval chapters only during this phase."
+        },
+        {
+          "name": "Functional Ear Trainer (Kaizen9)",
+          "kind": "App",
+          "description": "Trains you to hear every note relative to the tonic, which is exactly how Sa-based Indian listening already works."
+        },
+        {
+          "name": "Tenuto (iOS) or musictheory.net exercises (free)",
+          "kind": "App / web",
+          "description": "Key signature, interval and staff-reading drills."
+        }
+      ],
+      "youtubeQueries": [
+        "piano thumb under technique slow exercise",
+        "C G D F major scale fingering piano beginner",
+        "I V vi IV Bollywood songs piano chords",
+        "Hanon exercise 1 rhythm variations",
+        "left hand root fifth octave piano accompaniment",
+        "dadra taal 6 beats explained"
+      ],
+      "gateCriteria": [
+        "One-octave C, G, D and F major scales, hands together, at 72 BPM in eighth notes, with smooth thumb crossings (no audible gap or bump).",
+        "Interval test: identify 10 random intervals (2nd, 3rd, 4th, 5th, octave) by ear in an app, scoring 8/10 or better on two days in a row.",
+        "Play a full I–V–vi–IV song with LH 1-5-8 shells and RH melody for 16 bars at 70 BPM, recorded in one take with no stops.",
+        "Transpose the first 8 bars of that melody to a new Sa (for example Sa = G) by ear in under 5 minutes."
+      ],
+      "whatToExpect": "The thumb crossing will make the hand bump or the elbow fly out. When both hands play together, the right hand will speed up or freeze every time the left hand changes shape. This is the brain learning to run two motor programs at once.",
+      "breakthroughCues": [
+        "Thumb travels early: start moving it under the moment finger 2 plays, not at the last second.",
+        "Practise the left hand alone until it bores you. If the left hand needs your eyes, the right hand will fail.",
+        "Slow to the speed where nothing breaks, and stay there for 3 clean runs before adding 4 BPM."
+      ],
+      "fieldNotePrompts": [
+        "Which interval was easiest to hear, and which song or swara do I use to remember it?",
+        "At what BPM did hands-together fall apart, and what was the exact failure (left hand late, right hand rushing, freezing)?",
+        "Did transposing to a new Sa feel like a new song or the same song? What does that tell me about how I hear?"
+      ]
+    },
+    {
+      "id": "phase-3",
+      "num": "3",
+      "eyebrow": "Phase 3 · Weeks 11–18 · 8 weeks",
+      "title": "Triads, Inversions & Minor Colour",
+      "mechanicalSkill": "Right-hand chord shapes that change by the smallest possible movement (inversions), a left hand that plays broken-chord patterns, and the first deliberate dynamic control (soft vs loud) on a velocity-sensitive keyboard.",
+      "mentalModel": "Chords are stacks of thirds, and each key has a family of seven chords. Minor is a set of 'flattened' swaras, not a separate universe.",
+      "theoryConcepts": [
+        {
+          "title": "Triads: root, 3rd, 5th",
+          "explanation": "Stack every other note: C–E–G. Major triad = major 3rd + minor 3rd (4 + 3 semitones). Minor = minor 3rd + major 3rd (3 + 4). Diminished = 3 + 3. The 3rd alone decides happy or sad colour.",
+          "bridge": "C major triad = Sa Ga Pa. C minor = Sa komal Ga Pa. Changing one swara from shuddha to komal is the whole difference."
+        },
+        {
+          "title": "Inversions and voice leading",
+          "explanation": "Root position: C–E–G. 1st inversion: E–G–C. 2nd inversion: G–C–E. Choose the inversion that keeps common notes still and moves the others by a step. C to F becomes C–E–G to C–F–A: only two fingers move.",
+          "bridge": "Think of it like moving between swaras in a melody by the nearest step. Good voice leading is 'chord melody' that a singer could follow."
+        },
+        {
+          "title": "The diatonic chord family",
+          "explanation": "Build a triad on each note of the major scale: I ii iii IV V vi vii°. In C: C Dm Em F G Am Bdim. Major chords sit on 1, 4, 5; minor on 2, 3, 6; diminished on 7. Most songs in a key use only these.",
+          "bridge": "Chords on Sa, Ma and Pa are major; chords on Re, Ga and Dha are minor. This is why 'Sa–Ma–Pa' bass lines sound so complete."
+        },
+        {
+          "title": "Natural minor",
+          "explanation": "W H W W H W W. A natural minor (A B C D E F G) shares the same notes as C major, starting on A. Its chord family: i ii° III iv v VI VII.",
+          "bridge": "Natural minor = Asavari thaat: komal Ga, komal Dha, komal Ni. With Sa = A, that is the white keys from A."
+        },
+        {
+          "title": "Harmonic minor and Für Elise",
+          "explanation": "Raise the 7th of natural minor: A B C D E F G#. This creates a strong pull back to the tonic and makes the V chord major (E major in A minor). Für Elise's famous E–D#–E figure is this leading-note pull, seen from E.",
+          "bridge": "Harmonic minor = Sa Re komal Ga Ma Pa komal Dha shuddha Ni, the swaras of raag Kirwani. If you have heard Kirwani, you already know this colour."
+        },
+        {
+          "title": "Lead sheets vs staff notation",
+          "explanation": "A lead sheet gives melody plus chord symbols; you invent the accompaniment. Staff notation tells you every note. Learn both: lead sheets for songs, staff for classical pieces. This phase, read Für Elise's A section slowly from the staff.",
+          "bridge": "Bollywood keyboard players usually work from lead sheets or by ear. Classical pianists read staff. You will do both."
+        },
+        {
+          "title": "Dynamics and the sustain pedal",
+          "explanation": "pp (very soft), p, mf, f (loud). On a digital piano these come only from key speed, so velocity sensitivity matters. Sustain pedal: press after the chord sounds, lift exactly when the next chord sounds, press again ('legato pedalling').",
+          "bridge": "Indian music uses dynamics through the voice and instruments. Here you produce them with key speed. Try playing the same swara at four volumes."
+        }
+      ],
+      "drills": [
+        {
+          "title": "Inversion ladder",
+          "description": "RH plays C root, 1st, 2nd inversion and back up the keyboard, then the same for F, G and Am. Say the inversion name as you play it.",
+          "target": "All four chords, up and down two octaves, at 72 BPM half notes, eyes off hands for the second octave."
+        },
+        {
+          "title": "Nearest-voicing changes",
+          "description": "Play I–vi–IV–V (C–Am–F–G) with RH inversions that move by the least distance. LH plays root notes only.",
+          "target": "Loop for 2 minutes at 80 BPM with no stops and no RH jumps larger than 2 keys."
+        },
+        {
+          "title": "LH broken-chord engines",
+          "description": "Pattern A: 1-5-8-5 (root, fifth, octave, fifth) in eighths. Pattern B: Alberti 1-5-3-5 (C–G–E–G). Apply each to C, F, G, Am.",
+          "target": "Each pattern 16 bars at 70 BPM, even eighths."
+        },
+        {
+          "title": "Dynamic ladder",
+          "description": "Play a C major five-finger pattern four times: pp, p, mf, f. Then a crescendo (soft to loud) within one pass, then a diminuendo.",
+          "target": "Four clearly different levels that someone listening could name."
+        },
+        {
+          "title": "Pedal timing",
+          "description": "Play C–F–G–C in RH chords, one per bar, and change the pedal on each chord: chord down, pedal up-then-down immediately after.",
+          "target": "No blur between chords and no gap of silence, recorded and checked."
+        }
+      ],
+      "dailyPractice": [
+        {
+          "time": "0–5 min",
+          "bpm": "72–80 BPM",
+          "label": "Warm-up & metronome locking",
+          "task": "One major and one minor scale, hands together, one octave (rotate keys). Then 1 minute of the dynamic ladder."
+        },
+        {
+          "time": "5–15 min",
+          "bpm": "70–80 BPM",
+          "label": "Core technique / hand independence",
+          "task": "Inversion ladder for one chord family (3 min), nearest-voicing loop (3 min), LH broken-chord pattern of the week under RH held chords (4 min)."
+        },
+        {
+          "time": "15–22 min",
+          "bpm": "50–66 BPM",
+          "label": "Applied music / repertoire",
+          "task": "Alternate days. Odd days: Für Elise A section, 2–4 bars at a time, hands separately then together. Even days: a minor-key Indian song from a lead sheet, RH melody plus LH broken chords."
+        },
+        {
+          "time": "22–25 min",
+          "bpm": "free BPM",
+          "label": "Cooldown / improvisation",
+          "task": "Loop Am–F–C–G in the LH. RH improvises using A natural minor, then swaps G for G# for one phrase to hear the Kirwani colour."
+        }
+      ],
+      "offKeyboardHabit": {
+        "title": "Major or minor?",
+        "task": "On your walk, with any playlist, decide for each song within 15 seconds: is the home chord major or minor? Then hum Sa and Ga to check whether Ga is shuddha or komal."
+      },
+      "resources": [
+        {
+          "name": "MangoldProject (YouTube)",
+          "kind": "Channel",
+          "description": "Methodical theory and beginner piano lessons, especially good on chords, inversions and left-hand patterns."
+        },
+        {
+          "name": "Pianote (YouTube)",
+          "kind": "Channel",
+          "description": "Inversions, voice leading and pop accompaniment patterns explained step by step."
+        },
+        {
+          "name": "Nahre Sol (YouTube)",
+          "kind": "Channel",
+          "description": "Thoughtful videos on classical technique, practice and musical expression. Useful for how to think about Für Elise, not as a tutorial."
+        },
+        {
+          "name": "Tenuto (iOS) or musictheory.net (free)",
+          "kind": "App / web",
+          "description": "Chord-construction and chord-identification drills on the staff and keyboard."
+        },
+        {
+          "name": "IMSLP (imslp.org)",
+          "kind": "Website (free)",
+          "description": "Free public-domain sheet music. Download Für Elise (WoO 59) there instead of buying an arrangement."
+        }
+      ],
+      "youtubeQueries": [
+        "piano chord inversions voice leading beginner",
+        "diatonic chords in a key explained piano",
+        "Für Elise slow tutorial hands and fingering (not Synthesia)",
+        "Alberti bass pattern piano beginner",
+        "how to use sustain pedal legato pedaling",
+        "raag Kirwani notes harmonic minor"
+      ],
+      "gateCriteria": [
+        "Triad recall: an app or friend calls 20 random major and minor triads with a random inversion; you play 18 of 20 correctly, each within 3 seconds.",
+        "Play I–vi–IV–V and i–VI–III–VII in C/Am, G/Em and F/Dm with RH nearest voicings and LH broken chords, 16 bars each at 80 BPM.",
+        "Perform Für Elise A section (bars 1 to the first double bar and its repeat) at quarter note = 50 or faster, with pedal, recorded in one take with no more than one slip.",
+        "Play a minor-key Indian song from a lead sheet with LH broken chords and at least two clear dynamic levels."
+      ],
+      "whatToExpect": "Chord changes will make you look down and lose the beat, and your right hand will grab whole chords with tense, flat fingers. Für Elise will expose the left-hand handover in bars 2–4, where your hands share a melody line, and the music will sound bumpy at the handover point.",
+      "breakthroughCues": [
+        "Look ahead, not down: your eyes should be on the next chord symbol while your hand is still on the current one.",
+        "Pre-shape in the air: start shaping the next inversion during the last beat of the current chord.",
+        "For the Für Elise handover, practise only the two notes either side of it, 10 times, until it sounds like one hand."
+      ],
+      "fieldNotePrompts": [
+        "Which chord change took longest to automate, and what physical shortcut did I find for it?",
+        "Can I hear the difference between Sa–Ga–Pa and Sa–komal Ga–Pa instantly now? Describe how each feels.",
+        "What did recording Für Elise reveal that I could not hear while playing?"
+      ]
+    },
+    {
+      "id": "phase-4",
+      "num": "4",
+      "eyebrow": "Phase 4 · Weeks 19–28 · 10 weeks",
+      "title": "Rhythm, Groove & Indian Ornament",
+      "mechanicalSkill": "Genuine hand independence: a left-hand arpeggio or groove pattern that runs on autopilot while the right hand plays syncopated melody, and fast, light finger ornaments (grace notes and turns).",
+      "mentalModel": "Rhythm has layers: a cycle (taal), a groove pattern inside it, and syncopations that pull against it. Indian melody lives in the ornaments between notes, and the keyboard needs specific techniques to imply them.",
+      "theoryConcepts": [
+        {
+          "title": "Sixteenth notes and syncopation",
+          "explanation": "Count '1 e & a'. Syncopation means accenting the 'off' parts of the beat, such as the '&' or 'a'. A note that starts before the beat and holds over it is called an anticipation, very common in pop melodies.",
+          "bridge": "Laykari is playing with subdivisions inside a matra: dugun (2 per matra), tigun (3), chaugun (4). Chaugun is sixteenth notes."
+        },
+        {
+          "title": "The 3-3-2 groove",
+          "explanation": "Split 8 eighth notes as 3+3+2: accents on 1, the '&' of 2, and 4. It is the tresillo rhythm under reggaeton, much pop, and many Hindi film songs.",
+          "bridge": "Keherwa's 8 matras grouped 3+3+2. Clap it while saying 'Dha – – Dha – – Dha –' to feel it."
+        },
+        {
+          "title": "Taal to time-signature map",
+          "explanation": "Keherwa (8) feels like 4/4. Dadra (6) like 6/8. Rupak (7: 3+2+2) like 7/8, starting on a khali (empty) beat. Teentaal (16: 4+4+4+4) like four bars of 4/4.",
+          "bridge": "Taal also has tali (clap) and khali (wave) beats that mark the cycle's shape. Western bars mark only the downbeat. Learn the theka bols for Keherwa and Dadra so you can feel where sam lands."
+        },
+        {
+          "title": "Suspended and add9 chords",
+          "explanation": "Sus2: replace the 3rd with the 2nd (C–D–G). Sus4: replace with the 4th (C–F–G). Add9: keep the 3rd and add the 9th (C–E–G–D). These are open and ambiguous, neither major nor minor.",
+          "bridge": "Csus2 = Sa Re Pa, Csus4 = Sa Ma Pa. Both avoid Ga, so they sit well under melodies whose Ga is ornamented or ambiguous. You hear these open voicings constantly in A.R. Rahman's and Pritam's arrangements."
+        },
+        {
+          "title": "Pentatonic scales and ragas",
+          "explanation": "Major pentatonic: 1 2 3 5 6 (C D E G A). Minor pentatonic: 1 b3 4 5 b7. Five-note scales have no semitone clashes, which is why they are safe for improvising.",
+          "bridge": "Major pentatonic = raag Bhupali (Sa Re Ga Pa Dha). Raag Malkauns (Sa komal Ga Ma komal Dha komal Ni) is also pentatonic but drops Pa, so it is not the Western minor pentatonic. A raga is more than its scale: it has fixed movement (aroh/avroh) and characteristic phrases (pakad)."
+        },
+        {
+          "title": "Ornaments on a fixed-pitch keyboard",
+          "explanation": "A keyboard cannot slide pitch smoothly, so you imply ornaments: grace note (a quick note before the main note), turn (note above, note, note below, note), and the pitch-bend wheel for slides.",
+          "bridge": "Kan swar = grace note. Murki = a quick turn-like cluster. Meend (glide) and andolan (slow oscillation) need the pitch-bend wheel, set to a range of 2 semitones, or are implied by a quick chromatic grace."
+        },
+        {
+          "title": "Drone and pedal point",
+          "explanation": "A pedal point is a bass note held while the chords above change. It creates tension and release without the bass moving.",
+          "bridge": "This is the tanpura principle applied to harmony. A low Sa–Pa held under changing RH chords gives an instantly 'Indian classical' atmosphere."
+        }
+      ],
+      "drills": [
+        {
+          "title": "Ballad arpeggio engine",
+          "description": "LH: root–5th–octave–10th (C–G–C–E) in eighths, or root–5th–octave–5th. Run it on C–G–Am–F until you can talk while playing it.",
+          "target": "32 bars at 80 BPM while counting aloud or holding a conversation."
+        },
+        {
+          "title": "Syncopated RH over steady LH",
+          "description": "LH plays steady quarter-note roots. RH plays a 3-3-2 pattern on chord tones, then a melody with anticipations (notes on the '&' of 4 tied over the bar line).",
+          "target": "16 bars at 76 BPM, metronome on beats 2 and 4."
+        },
+        {
+          "title": "3:2 and 3:4 polyrhythm",
+          "description": "LH plays 2 even notes per beat, RH 3 even notes in the same time. Say 'pass the gold-en but-ter' to get the composite rhythm. Then try 3 against 4.",
+          "target": "3:2 for 30 seconds at 60 BPM per beat, steady."
+        },
+        {
+          "title": "Ornament ladder",
+          "description": "On a slow melody, add kan swar (grace note from the note above) to every long note, then a murki (4-note turn) on cadences. Fingers stay close to the keys; the ornament is light and the main note is louder.",
+          "target": "Ornament + main note sound as one gesture at 70 BPM."
+        },
+        {
+          "title": "Taal clap-and-play",
+          "description": "Say Keherwa bols aloud (Dha Ge Na Ti Na Ke Dhi Na) while the LH plays roots on matras 1 and 5. Then Dadra (Dha Dhi Na Dha Ti Na) with roots on 1 and 4.",
+          "target": "4 cycles of each taal, voice and hand never drifting apart."
+        }
+      ],
+      "dailyPractice": [
+        {
+          "time": "0–5 min",
+          "bpm": "60–90 BPM",
+          "label": "Warm-up & metronome locking",
+          "task": "Two-octave scale of the day hands together (2 min). Then 3:2 polyrhythm tapping on the keyboard lid with the metronome (3 min)."
+        },
+        {
+          "time": "5–15 min",
+          "bpm": "70–84 BPM",
+          "label": "Core technique / hand independence",
+          "task": "LH arpeggio engine alone until automatic (3 min), then add the RH syncopated pattern on top (4 min), then the ornament ladder on one phrase (3 min)."
+        },
+        {
+          "time": "15–22 min",
+          "bpm": "70–90 BPM",
+          "label": "Applied music / repertoire",
+          "task": "Build one complete Bollywood or indie-pop song arrangement over the phase: LH arpeggio engine in verse, sus2/add9 voicings in the chorus, RH melody with kan swar and murki."
+        },
+        {
+          "time": "22–25 min",
+          "bpm": "free BPM",
+          "label": "Cooldown / improvisation",
+          "task": "LH holds a low Sa–Pa drone with the pedal. RH explores raag Bhupali aroh and avroh, then makes up 2-bar phrases ending on Sa or Pa."
+        }
+      ],
+      "offKeyboardHabit": {
+        "title": "Taal walking and tapping",
+        "task": "On your walk, recite Keherwa bols with each step as a matra, clapping on sam. At your desk, tap 3:2 on your thighs (left hand 2, right hand 3) for 2 minutes, then swap hands."
+      },
+      "resources": [
+        {
+          "name": "Pianote (YouTube)",
+          "kind": "Channel",
+          "description": "Pop accompaniment patterns, left-hand arpeggio styles and syncopation lessons."
+        },
+        {
+          "name": "Jazer Lee (YouTube)",
+          "kind": "Channel",
+          "description": "Practical arranging and left-hand pattern videos for pop songs."
+        },
+        {
+          "name": "PianoBollywood (YouTube)",
+          "kind": "Channel",
+          "description": "Hindi film song piano covers and tutorials. Use it for song ideas and arrangement colour; prefer videos that show hands and chords over falling-note overlays."
+        },
+        {
+          "name": "NaadSadhana or iTablaPro (iOS)",
+          "kind": "App",
+          "description": "Tabla and tanpura accompaniment in real taals (Keherwa, Dadra, Rupak), so you practise grooves against a tabla instead of a click. Android users: search the Play Store for a tabla/tanpura app with Keherwa loops."
+        },
+        {
+          "name": "Riyaz (MusicMuni Labs)",
+          "kind": "App",
+          "description": "Sargam and raga-based singing exercises. Sing the ornament before you play it."
+        }
+      ],
+      "youtubeQueries": [
+        "Bollywood song piano left hand arpeggio pattern tutorial",
+        "sus2 sus4 add9 chords piano pop ballad",
+        "3 against 2 polyrhythm piano exercise",
+        "kan swar murki on keyboard harmonium technique",
+        "keherwa dadra rupak theka bols tabla lesson",
+        "raag Bhupali aroh avroh pakad"
+      ],
+      "gateCriteria": [
+        "Perform a complete Hindi film or indie song arrangement (intro, verse, chorus, ending) of at least 2 minutes: LH arpeggio engine, sus2/add9 voicings in at least one section, RH melody with at least 3 kan swar and 2 murki ornaments. Recorded in one take at 80 BPM or the song's tempo.",
+        "Play 3:2 polyrhythm hands together for 30 seconds at 60 BPM, steady on a recording.",
+        "Recite Keherwa and Dadra bols while the LH plays the matching groove for 4 cycles each without drifting.",
+        "Play raag Bhupali aroh and avroh with Sa = C, G and D, and improvise for 1 minute over a Sa–Pa drone using only its notes."
+      ],
+      "whatToExpect": "Hand independence will feel impossible for about 2 weeks: the right-hand syncopation will drag the left hand off its pattern, or the left hand will copy the right hand's rhythm. Ornaments will come out heavy and lumpy because the fingers lift too high.",
+      "breakthroughCues": [
+        "Autopilot first: the LH pattern must run while you talk before the RH is allowed to join.",
+        "Add one RH note at a time to the LH loop. Learn where it falls against the LH, not just where it is in the melody.",
+        "For ornaments, keep fingertips on the key surface and 'flick' rather than strike. The grace note is quieter than the main note."
+      ],
+      "fieldNotePrompts": [
+        "What was the moment my left hand went on autopilot, and what did I do in the days before it?",
+        "Which ornament translated best from voice to keyboard, and which one still sounds fake?",
+        "How does playing against a tabla loop change my timing compared with a click?"
+      ]
+    },
+    {
+      "id": "phase-5",
+      "num": "5",
+      "eyebrow": "Phase 5 · Weeks 29–40 · 12 weeks",
+      "title": "Harmonic Vocabulary, Ragas & Classical Expression",
+      "mechanicalSkill": "Two-octave scales and arpeggios with an even, controlled tone, voicing (making the melody's top note louder than the notes under it in the same hand), and expressive pedalling in a complete classical piece.",
+      "mentalModel": "Western modes and Indian thaats are the same raw material organised differently. Seventh chords, borrowed chords and key changes are colours you choose on purpose, and a raga tells you which colours fit.",
+      "theoryConcepts": [
+        {
+          "title": "Seventh chords",
+          "explanation": "Add another third on top of a triad. maj7 (C–E–G–B), dominant 7 (C–E–G–Bb), m7 (C–Eb–G–Bb), half-diminished m7b5 (B–D–F–A). In a major key: Imaj7 ii7 iii7 IVmaj7 V7 vi7 viiø7.",
+          "bridge": "Cmaj7 = Sa Ga Pa Ni; C7 = Sa Ga Pa komal Ni. The shuddha vs komal Ni decides whether the chord rests (maj7) or pulls to Ma (dominant 7)."
+        },
+        {
+          "title": "Modes and thaats",
+          "explanation": "Each mode starts the major scale from a different note. Ionian (1), Dorian (2), Phrygian (3), Lydian (4), Mixolydian (5), Aeolian (6), Locrian (7). Hear each against a drone on its own root.",
+          "bridge": "Ionian = Bilawal. Dorian = Kafi. Phrygian = Bhairavi. Lydian = Kalyan (raag Yaman). Mixolydian = Khamaj. Aeolian = Asavari. Thaats such as Bhairav, Poorvi, Marwa and Todi have no standard Western mode name, because they use augmented 2nds."
+        },
+        {
+          "title": "Borrowed chords and the film-song lift",
+          "explanation": "Borrowing chords from the parallel minor in a major key: bVI (Ab in C), bVII (Bb in C) and iv (Fm in C). They make a bright song briefly dark or nostalgic. A final chorus moved up a semitone or a tone is a classic Hindi film and pop device.",
+          "bridge": "bVII = a chord on komal Ni, bVI = a chord on komal Dha. Mixing shuddha and komal versions of a swara inside one song is common in film music, even where a strict raga would forbid it."
+        },
+        {
+          "title": "Secondary dominants",
+          "explanation": "A dominant 7 chord that points at a chord other than I. In C, A7 leads to Dm (it is 'V of ii'), and E7 leads to Am. It creates forward pull by borrowing a note from outside the key (C# in A7).",
+          "bridge": "A7 contains komal Re (C#) relative to Sa = C. You are briefly using a swara outside the thaat to create direction."
+        },
+        {
+          "title": "Harmonising a raga melody",
+          "explanation": "Many raga phrases clash with full Western triads. Use a drone or pedal bass, open fifths, sus chords, quartal voicings (stacked 4ths such as D–G–C), and harmonise only the long notes.",
+          "bridge": "For Yaman (all shuddha except tivra Ma), chords from C Lydian work: C, D (with F#), Em, Bm. Avoid F major, because it contains shuddha Ma, which Yaman avoids in its main movements."
+        },
+        {
+          "title": "Voicing and touch",
+          "explanation": "Voicing means one note of a chord sounds louder than the others. Put arm weight behind the finger that has the melody (usually 5 in RH) and keep the others light.",
+          "bridge": "Same principle as a singer being heard above the harmonium. The melody must always sing over the accompaniment."
+        },
+        {
+          "title": "Musical form and phrasing",
+          "explanation": "Classical pieces have sections (A B A, rondo A B A C A). Phrases breathe: they rise to a high point and then relax. Mark the high point of each phrase in your score.",
+          "bridge": "A raga performance has its own form: alaap (free, slow), jod (pulse enters), gat or bandish (composition with taal). Both systems build tension over time and resolve to home."
+        }
+      ],
+      "drills": [
+        {
+          "title": "Two-octave scales and arpeggios",
+          "description": "All major scales on the circle of fifths (C G D A E B F# / F Bb Eb Ab Db) plus A, E and D harmonic minor, two octaves, hands together. Add the matching two-octave arpeggio.",
+          "target": "Scales at 100 BPM in eighth notes; arpeggios at 80 BPM in eighths."
+        },
+        {
+          "title": "ii–V–I in all keys",
+          "description": "LH roots, RH 7th chords using nearest voicings (Dm7–G7–Cmaj7). Move round the circle of fifths: Gm7–C7–Fmaj7, and so on.",
+          "target": "All 12 keys in 6 minutes without stopping, at 70 BPM."
+        },
+        {
+          "title": "Voicing drill",
+          "description": "Hold a RH chord and play it 4 times: top note loud and others soft, then middle note loud, then bottom note loud. Then apply to the melody of your classical piece.",
+          "target": "A listener can tell which note is the melody every time."
+        },
+        {
+          "title": "Raga aroh–avroh with drone",
+          "description": "Yaman, then Bhairav, then Kafi (one per fortnight). Play aroh and avroh slowly, then the pakad, then 4-bar alaap-style phrases over LH Sa–Pa with pedal.",
+          "target": "Aroh, avroh and pakad from memory in Sa = C and one other key."
+        },
+        {
+          "title": "Czerny-style evenness",
+          "description": "One short study from Czerny Op. 599 or Burgmüller Op. 100 per fortnight, practised in dotted rhythms first to even out the fingers.",
+          "target": "The study at a steady tempo with no rushed or delayed notes on a recording."
+        }
+      ],
+      "dailyPractice": [
+        {
+          "time": "0–5 min",
+          "bpm": "80–100 BPM",
+          "label": "Warm-up & metronome locking",
+          "task": "Two-octave scale and arpeggio of the day (follow the circle of fifths across the week)."
+        },
+        {
+          "time": "5–15 min",
+          "bpm": "70–100 BPM",
+          "label": "Core technique / hand independence",
+          "task": "ii–V–I through 4 keys (4 min), voicing drill (2 min), Czerny or Burgmüller study (4 min)."
+        },
+        {
+          "time": "15–22 min",
+          "bpm": "piece tempo − 20% BPM",
+          "label": "Applied music / repertoire",
+          "task": "Main classical piece: Für Elise complete, or Chopin Prelude Op. 28 No. 4 (E minor), or Bach/Petzold Minuet in G. Work in sections, with the hardest section first while you are fresh."
+        },
+        {
+          "time": "22–25 min",
+          "bpm": "free (no metre) BPM",
+          "label": "Cooldown / improvisation",
+          "task": "Raga of the fortnight: alaap-style improvisation over a LH Sa–Pa drone, no metre, ending on Sa."
+        }
+      ],
+      "offKeyboardHabit": {
+        "title": "Mode and raga spotting",
+        "task": "Listen to one classical raga recording (5 minutes) on your walk. Identify Sa, then name which swaras are komal or tivra. Afterwards, write the scale as both thaat and Western mode."
+      },
+      "resources": [
+        {
+          "name": "Nahre Sol (YouTube)",
+          "kind": "Channel",
+          "description": "Videos on style, voicing and practice for classical repertoire, from a concert pianist and composer."
+        },
+        {
+          "name": "Piano With Jonny (paid course)",
+          "kind": "Online course",
+          "description": "Structured seventh-chord, ii–V–I and voicing courses. Worth a trial month in this phase if you want more structure."
+        },
+        {
+          "name": "Bill Hilton (YouTube)",
+          "kind": "Channel",
+          "description": "Good on modes, reading classical pieces and using theory practically."
+        },
+        {
+          "name": "IMSLP (imslp.org)",
+          "kind": "Website (free)",
+          "description": "Public-domain scores for Für Elise, Chopin Op. 28, the Notebook for Anna Magdalena Bach, Czerny Op. 599 and Burgmüller Op. 100."
+        },
+        {
+          "name": "NaadSadhana or Riyaz",
+          "kind": "App",
+          "description": "Raga-aware drone and practice so you can check your Yaman and Bhairav phrases by singing."
+        }
+      ],
+      "youtubeQueries": [
+        "seventh chords piano explained maj7 dom7 m7",
+        "ii V I piano voicings all keys beginner",
+        "modes vs thaat Indian classical Western explained",
+        "raag Yaman aroh avroh pakad on keyboard",
+        "Chopin prelude E minor op 28 no 4 tutorial pedaling",
+        "voicing melody top note piano technique"
+      ],
+      "gateCriteria": [
+        "Two-octave major scales in all 12 keys and A, E, D harmonic minor, hands together, at 100 BPM eighth notes, with even tone (recorded).",
+        "ii–V–I in all 12 keys round the circle of fifths in under 6 minutes, with nearest voicings and no stops.",
+        "Perform one complete classical piece (Für Elise, Chopin Prelude Op. 28 No. 4, or the Minuet in G) from memory, with pedalling and a clearly voiced melody, recorded in one take.",
+        "Raga Yaman: aroh, avroh and pakad from memory, then a 2-minute alaap-style improvisation over a Sa–Pa drone that never uses shuddha Ma in ascent."
+      ],
+      "whatToExpect": "Memory slips in the classical piece, usually at section joins, and a plateau in speed where the scales get louder but not faster. Raga playing will feel 'wrong' at first because the keyboard cannot bend notes and your ear will notice every missing meend.",
+      "breakthroughCues": [
+        "Memorise from the end: learn the last phrase first, so you are always playing toward something you know well.",
+        "For speed plateaus, practise in bursts: 4 notes fast, stop, next 4 notes. Then 8, then the whole run.",
+        "For ragas, replace each meend with a quick grace note from the approaching swara, and let the pitch-bend wheel handle one or two key glides only."
+      ],
+      "fieldNotePrompts": [
+        "Which mode or thaat surprised me most when I heard it over a drone, and why?",
+        "Where in my classical piece did memory fail, and was it muscle memory, the score image, or the harmony I forgot?",
+        "Which borrowed chord or key lift do I now recognise in Hindi film songs, and in which song?"
+      ]
+    },
+    {
+      "id": "phase-6",
+      "num": "6",
+      "eyebrow": "Phase 6 · Weeks 41–52 · 12 weeks",
+      "title": "Ear-Based Arrangement & Expressive Performance",
+      "mechanicalSkill": "Wide, spread voicings across both hands, switching between accompaniment textures mid-song, and playing a full arrangement under recording pressure without stopping.",
+      "mentalModel": "Any song is Sa, a bass line, a chord quality and a melody. Hear those four things and you can arrange anything, in any key, for solo piano.",
+      "theoryConcepts": [
+        {
+          "title": "Transcribing by ear",
+          "explanation": "Order of work: find the tonic (hum the note the song resolves to), then the bass line, then each chord's quality (major, minor, sus, 7th), then the melody. Use a slow-down app or YouTube's 0.75x speed.",
+          "bridge": "Finding the tonic is finding Sa, which Indian-trained ears do naturally. Treat every song as 'what is the Sa, and which swaras are komal?'"
+        },
+        {
+          "title": "Number systems",
+          "explanation": "Write progressions as numbers instead of letters: 1–5–6–4, 6–4–1–5. Then any song is instantly transposable. Use Roman numerals for formal analysis.",
+          "bridge": "Numbers are sargam for chords: 1 = Sa chord, 4 = Ma chord, 5 = Pa chord, 6 = Dha chord. You already think melodies in movable Sa, and now chords work the same way."
+        },
+        {
+          "title": "Reharmonisation",
+          "explanation": "Swap a chord for one that shares notes or function: vi for I, ii for IV, iv (minor) for IV, a secondary dominant before any chord, or a tritone substitution for V7 (Db7 for G7). Apply it in one place, usually the last chorus.",
+          "bridge": "Film composers reharmonise the same melody across a song's verses to change its mood. Recognise how much a single komal swara in the chord changes the emotion."
+        },
+        {
+          "title": "Solo-piano voicings",
+          "explanation": "Spread voicings: LH root + 10th (C–E an octave up), or root + 5th + 10th. RH plays melody on top with 2–3 chord tones underneath. Keep the space between C3 and C4 uncluttered, or the sound turns muddy.",
+          "bridge": "Equivalent to a tanpura (low) + harmonium chords (middle) + voice (top): three clear registers that do not crowd each other."
+        },
+        {
+          "title": "Arrangement structure",
+          "explanation": "Intro (often the chorus chords, sparse), verse (lighter LH, lower register), pre-chorus (build), chorus (fuller LH, higher RH, louder), bridge (new colour), final chorus (key lift or reharmonisation), outro.",
+          "bridge": "Map it to a film song's mukhda (refrain) and antara (verse). Interludes between antaras are where Rahman and Pritam put their signature orchestral lines; you play them as RH countermelodies."
+        },
+        {
+          "title": "Improvisation as development",
+          "explanation": "Take a 3–5 note motif and develop it: repeat, transpose, invert, extend, fragment. Play call (RH) and response (LH or RH lower octave).",
+          "bridge": "This is how a raga's alaap and taans grow from a pakad: a small phrase explored and developed rather than random notes."
+        },
+        {
+          "title": "Performance psychology",
+          "explanation": "Nerves cause rushing and memory blanks. Recover by keeping the LH going and rejoining the melody at the next phrase. Never stop to fix a mistake in performance.",
+          "bridge": "In Indian performance the taal never stops either; you rejoin at the sam. Use the same rule: if lost, aim for the next beat 1."
+        }
+      ],
+      "drills": [
+        {
+          "title": "Four textures, one progression",
+          "description": "Take one 4-chord progression. Play it as (1) block chords, (2) ballad arpeggio, (3) 3-3-2 pop groove, (4) spread root–10th voicings with RH chord melody.",
+          "target": "Switch between textures every 4 bars at 80 BPM without stopping."
+        },
+        {
+          "title": "Bass-line dictation",
+          "description": "Every day, pick a song you have not played. Find Sa, then play only the bass line along with the recording.",
+          "target": "Bass line of a new song found within 5 minutes."
+        },
+        {
+          "title": "Sa shift (transposition)",
+          "description": "Play a song you know in its original key, then in two other keys, chosen at random.",
+          "target": "Each new key playable within 2 minutes with no written chart."
+        },
+        {
+          "title": "15-minute arrangement sprint",
+          "description": "Once a week, take a lead sheet and in 15 minutes produce an intro, a verse texture, a chorus texture and an ending. Record the result even if rough.",
+          "target": "A complete rough arrangement every week, on time."
+        },
+        {
+          "title": "Mock performance",
+          "description": "Once a week, record one piece as a 'performance': announce it aloud, play once, no restarts allowed.",
+          "target": "One full take per week with no stops, whatever mistakes happen."
+        }
+      ],
+      "dailyPractice": [
+        {
+          "time": "0–5 min",
+          "bpm": "80–110 BPM",
+          "label": "Warm-up & metronome locking",
+          "task": "Scale and arpeggio in today's arrangement key. Then 1 minute of the progression in spread root–10th voicings."
+        },
+        {
+          "time": "5–15 min",
+          "bpm": "70–90 BPM",
+          "label": "Core technique / hand independence",
+          "task": "Four textures, one progression (5 min), then bass-line dictation of a new song (5 min)."
+        },
+        {
+          "time": "15–22 min",
+          "bpm": "song tempo BPM",
+          "label": "Applied music / repertoire",
+          "task": "Build your two gate arrangements: one Indian song and one Western piece. One section per week; final week is mock performances only."
+        },
+        {
+          "time": "22–25 min",
+          "bpm": "free BPM",
+          "label": "Cooldown / improvisation",
+          "task": "Motif development: pick 3 notes from today's song and improvise on them for 3 minutes over its chords, then end on Sa."
+        }
+      ],
+      "offKeyboardHabit": {
+        "title": "Silent arranging",
+        "task": "On your walk, pick a song you hear and work out in your head: what is the Sa, is it 1–5–6–4 or something else, where is the key change? Note it in your phone, then check it at the keyboard next day."
+      },
+      "resources": [
+        {
+          "name": "Pianote (YouTube)",
+          "kind": "Channel",
+          "description": "Lessons on playing by ear, arranging pop songs for solo piano and reharmonisation basics."
+        },
+        {
+          "name": "Jazer Lee (YouTube)",
+          "kind": "Channel",
+          "description": "Arranging and improvisation videos aimed at self-taught players."
+        },
+        {
+          "name": "Nahre Sol (YouTube)",
+          "kind": "Channel",
+          "description": "Videos that play the same material in many styles, a direct model for the four-textures drill."
+        },
+        {
+          "name": "PianoBollywood (YouTube) and DhruvPiano / Prachi Piano (websites)",
+          "kind": "Channels / sites",
+          "description": "Hindi song piano covers to compare against your own arrangements. Use them to check, not to copy note-for-note."
+        },
+        {
+          "name": "Functional Ear Trainer and Complete Ear Trainer",
+          "kind": "App",
+          "description": "Return to the chord-quality and progression chapters for transcription speed."
+        }
+      ],
+      "youtubeQueries": [
+        "how to play any song by ear piano find the key",
+        "solo piano arrangement pop song left hand voicings tenths",
+        "reharmonization for beginners piano",
+        "Nashville number system explained piano",
+        "A R Rahman chord progressions analysis piano",
+        "motif development improvisation piano exercise"
+      ],
+      "gateCriteria": [
+        "Transcribe by ear (no chart) and arrange one Hindi film or Indian indie song you have never played before: at least 3 minutes, with intro, two distinct LH textures, one reharmonisation or key lift, and a dynamic arc from soft to loud. Recorded on video in one take.",
+        "Do the same for one Western piece or song (classical theme, film score or pop), 3 minutes, one take.",
+        "Play a song request (a simple, well-known tune) by ear in any of three keys chosen by someone else, within 2 minutes per key.",
+        "Improvise for 2 minutes over a given 4-chord progression using motif development, recorded, with a clear beginning, peak and ending."
+      ],
+      "whatToExpect": "Ear transcription will be slow and frustrating: you will hear the melody easily but the chords will feel like a blur. Your arrangements will default to the one LH pattern you know best. Under recording pressure, you will rush.",
+      "breakthroughCues": [
+        "Bass first, always. The chord is usually obvious once you know the bass note and whether the song sounds bright or dark there.",
+        "Make texture change a rule: the verse and chorus must use different LH patterns.",
+        "Before recording, play 4 bars at 10 BPM slower than you intend. Nerves will add the speed for you."
+      ],
+      "fieldNotePrompts": [
+        "What is my personal ear-transcription process now, step by step, and where does it still break?",
+        "Which arranging choice in my gate recordings am I proudest of, and where did the idea come from?",
+        "What do I want to learn next: deeper ragas, jazz harmony, production, or performance? Why?"
+      ]
+    }
+  ]
+}
