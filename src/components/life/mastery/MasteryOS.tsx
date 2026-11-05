@@ -917,24 +917,31 @@ function computeStreak(calendarLog: any): number {
 
 /* ============================== App ============================== */
 export default function MasteryOS({ initialStore }: { initialStore?: any }) {
-  const [store, setStoreRaw] = useState<any>(defaultStore);
-  const [hydrated, setHydrated] = useState(false);
+  // Lazy initializer -- runs exactly once, on first mount, using whatever the
+  // server handed down. Deliberately NOT a useEffect keyed on `initialStore`:
+  // that pattern re-ran every time the prop reference changed (which happens
+  // whenever Next.js refreshes this route's server component) and stomped
+  // local clicks -- switch phase/skill, see it snap back to the old one for
+  // a moment, click again and it "sticks". A lazy useState init ignores
+  // later prop changes entirely, so the server value only ever seeds the
+  // store once; after that the client store is the single source of truth
+  // and every change is pushed out to Supabase, never pulled back in.
+  const [store, setStoreRaw] = useState<any>(() => ({ ...defaultStore(), ...(initialStore || {}) }));
   const [modalOpen, setModalOpen] = useState(false);
   const setStore = useCallback((fn: any) => setStoreRaw((prev: any) => (typeof fn === "function" ? fn(prev) : fn)), []);
 
-  // Server loaded this from Supabase (mastery_state) before render -- merge it
-  // over the defaults and mark hydrated so the save effect below can start.
-  useEffect(() => { setStoreRaw({ ...defaultStore(), ...(initialStore || {}) }); setHydrated(true); }, [initialStore]);
-
   // Debounced save back to Supabase on every change, so progress follows you
   // across devices instead of staying stuck in one browser's localStorage.
+  // Skips the very first render (that's just the data we loaded, re-saving
+  // it immediately is pointless).
   const saveTimeout = useRef<any>(null);
+  const mounted = useRef(false);
   useEffect(() => {
-    if (!hydrated) return;
+    if (!mounted.current) { mounted.current = true; return; }
     if (saveTimeout.current) clearTimeout(saveTimeout.current);
     saveTimeout.current = setTimeout(() => { saveMasteryState(store).catch(() => {}); }, 800);
     return () => { if (saveTimeout.current) clearTimeout(saveTimeout.current); };
-  }, [store, hydrated]);
+  }, [store]);
 
   const activeSkill = store.activeSkill;
   const activePhaseId = store.activePhase[activeSkill];
@@ -963,8 +970,6 @@ export default function MasteryOS({ initialStore }: { initialStore?: any }) {
     reader.readAsText(file);
   }
 
-  if (!hydrated) return <div className={cx(inter.className, jetbrainsMono.variable, "app")} />;
-
   return (
     <div className={cx(inter.className, jetbrainsMono.variable, "app")} style={{ fontFamily: inter.style.fontFamily }}>
         <div className={cx("topbar")}>
@@ -976,7 +981,7 @@ export default function MasteryOS({ initialStore }: { initialStore?: any }) {
           <Badge cls={load}>TODAY · {load.toUpperCase()} LOAD</Badge>
           <div className={cx("cartridges")}>
             {Object.keys(SKILL_META).map((s) => (
-              <button key={s} className={cx("cart-btn", activeSkill === s && "on")} style={{ "--active-color": SKILL_META[s].color } as any} onClick={() => selectSkill(s)}>{SKILL_META[s].label}</button>
+              <button key={s} className={cx("cart-btn", store.activeTab === "workspace" && activeSkill === s && "on")} style={{ "--active-color": SKILL_META[s].color } as any} onClick={() => selectSkill(s)}>{SKILL_META[s].label}</button>
             ))}
             <button className={cx("cart-btn", store.activeTab === "schedule" && "on")} onClick={() => setStore((prev: any) => ({ ...prev, activeTab: "schedule" }))}>SCHEDULE &amp; ANALYTICS</button>
           </div>

@@ -1,7 +1,6 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { revalidatePath } from "next/cache";
 
 const ROW_ID = "singleton";
 
@@ -18,9 +17,16 @@ export async function loadMasteryState(): Promise<any | null> {
 // Upserts the whole store. Called (debounced) from the client on every
 // change -- phase checks, tissue status, field notes, session logs, the
 // recovery buff, the calendar log, and which skill/phase/tab is active.
+//
+// Deliberately does NOT call revalidatePath here. Calling a server action
+// from a client component makes Next.js auto-refresh the current route's
+// server components once the action resolves -- with revalidatePath that
+// meant every debounced save (every phase click, every skill switch) forced
+// /mastery's server component to refetch and re-hand-down `initialStore`,
+// which raced with whatever the user had just clicked locally and snapped
+// the UI back to the previous phase/skill for a moment. Nothing else reads
+// this table server-side, so there's nothing to revalidate.
 export async function saveMasteryState(state: any): Promise<void> {
   const supabase = createClient();
   await supabase.from("mastery_state").upsert({ id: ROW_ID, data: state, updated_at: new Date().toISOString() });
-  revalidatePath("/mastery");
-  revalidatePath("/life");
 }
