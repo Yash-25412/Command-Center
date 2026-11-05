@@ -2,9 +2,11 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import Link from "next/link";
 import styles from "./mastery.module.css";
 import PIANO_DATA from "./data/piano.json";
 import PHYSICAL_DATA from "./data/physical.json";
+import { saveMasteryState } from "@/app/actions/mastery";
 
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800"] });
 const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--jbmono" });
@@ -24,7 +26,9 @@ function cx(...classNames: Array<string | false | null | undefined>): string {
 }
 
 /* ============================== persistence ============================== */
-const STORE_KEY = "life-mastery-os-v1";
+// The store lives in Supabase (table `mastery_state`, see
+// supabase/migration-mastery-os.sql) so progress survives across devices --
+// this just defines the shape and merges in whatever the server loaded.
 function defaultStore(): any {
   return {
     activeSkill: "piano",
@@ -34,16 +38,6 @@ function defaultStore(): any {
     preflightChecks: {}, tissueStatus: {}, calendarLog: {}, logs: { piano: [], handstand: [], dragonflag: [], marathon: [] },
     recoveryBuff: {}
   };
-}
-function loadStore(): any {
-  try {
-    const raw = localStorage.getItem(STORE_KEY);
-    if (raw) return { ...defaultStore(), ...JSON.parse(raw) };
-  } catch (e) {}
-  return defaultStore();
-}
-function saveStore(s: any) {
-  try { localStorage.setItem(STORE_KEY, JSON.stringify(s)); } catch (e) {}
 }
 
 /* ============================== audio ============================== */
@@ -163,26 +157,62 @@ function StatusSelector({ value, onChange, label }: any) {
   );
 }
 
-function Dial({ value, min, max, onChange, label, unit, color }: any) {
+// A plain number input + stepper is the real control -- direct, unambiguous,
+// no gesture to learn. The dial underneath is a live readout you *can* also
+// drag (pointer capture keeps tracking even once the cursor leaves the small
+// circle, so fast drags don't jump or lose the gesture), with
+// touch-action/userSelect locked down so dragging never highlights the number.
+function Dial({ value, min, max, step, onChange, label, unit, color }: any) {
+  const s = step || 1;
   const dragRef = useRef<any>({ active: false, startY: 0, startVal: value });
   useEffect(() => { dragRef.current.startVal = value; }, [value]);
   const frac = (value - min) / (max - min);
   const angle = -110 + frac * 220;
-  function onDown(e: any) { dragRef.current = { active: true, startY: e.clientY, startVal: value }; }
+  function clamp(v: number) { return Math.max(min, Math.min(max, v)); }
+  function onDown(e: any) {
+    e.preventDefault();
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
+    dragRef.current = { active: true, startY: e.clientY, startVal: value };
+  }
   function onMove(e: any) {
     if (!dragRef.current.active) return;
-    const delta = (dragRef.current.startY - e.clientY) * ((max - min) / 180);
-    let next = dragRef.current.startVal + delta;
-    next = Math.max(min, Math.min(max, next));
-    onChange(Math.round(next * 10) / 10);
+    e.preventDefault();
+    const delta = (dragRef.current.startY - e.clientY) * ((max - min) / 220);
+    const next = clamp(Math.round((dragRef.current.startVal + delta) / s) * s);
+    onChange(next);
   }
-  function onUp() { dragRef.current.active = false; }
+  function onUp(e: any) {
+    dragRef.current.active = false;
+    try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (err) {}
+  }
+  function nudge(dir: number) { onChange(clamp(Math.round((value + dir * s) / s) * s)); }
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
       <span className={cx("eyebrow")}>{label}</span>
-      <div className={cx("dial")} onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp}>
-        <div style={{ position: "absolute", width: 4, height: 58, top: 10, left: "50%", background: color || "var(--amber)", borderRadius: 2, transformOrigin: "bottom center", transform: `translateX(-50%) rotate(${angle}deg)`, boxShadow: `0 0 6px ${color || "var(--amber)"}` }}></div>
-        <span className={cx("mono")} style={{ fontSize: 22, fontWeight: 700, color: color || "var(--amber)" }}>{value}{unit || ""}</span>
+      <div
+        className={cx("dial")}
+        onPointerDown={onDown}
+        onPointerMove={onMove}
+        onPointerUp={onUp}
+        onPointerCancel={onUp}
+        style={{ touchAction: "none", userSelect: "none", WebkitUserSelect: "none" }}
+      >
+        <div style={{ position: "absolute", width: 4, height: 58, top: 10, left: "50%", background: color || "var(--amber)", borderRadius: 2, transformOrigin: "bottom center", transform: `translateX(-50%) rotate(${angle}deg)`, boxShadow: `0 0 6px ${color || "var(--amber)"}`, pointerEvents: "none" }}></div>
+        <span className={cx("mono")} style={{ fontSize: 22, fontWeight: 700, color: color || "var(--amber)", userSelect: "none", pointerEvents: "none" }}>{value}{unit || ""}</span>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <button type="button" className={cx("topbtn", "ghost")} style={{ padding: "4px 11px" }} onClick={() => nudge(-1)}>−</button>
+        <input
+          type="number"
+          className={cx("mono")}
+          value={value}
+          min={min}
+          max={max}
+          step={s}
+          onChange={(e) => onChange(clamp(Number(e.target.value)))}
+          style={{ width: 62, textAlign: "center" }}
+        />
+        <button type="button" className={cx("topbtn", "ghost")} style={{ padding: "4px 11px" }} onClick={() => nudge(1)}>+</button>
       </div>
     </div>
   );
@@ -798,11 +828,27 @@ function WeeklyScheduleView({ store, setStore }: any) {
 }
 
 /* ============================== log session modal ============================== */
-function LogSessionModal({ skill, onClose, setStore }: any) {
+// Not every skill is practiced daily (piano is, marathon isn't) -- so this
+// isn't a blanket daily nudge. It only shows up when you open it, and what it
+// shows is the CURRENT PHASE's real predefined protocol (the same items the
+// Protocol/Drills tab lists for this phase), as a checklist you tick and
+// submit. The result -- which items you actually did -- is what lands in
+// logs[skill] and lights up today's cell on the calendar.
+function LogSessionModal({ skill, phase, onClose, setStore }: any) {
+  const items: any[] = phase.dailyPractice || [];
+  const [checked, setChecked] = useState<Record<number, boolean>>({});
   const [notes, setNotes] = useState("");
+  function toggle(i: number) { setChecked((c) => ({ ...c, [i]: !c[i] })); }
+  const doneCount = Object.keys(checked).filter((k) => checked[Number(k)]).length;
+
   function submit() {
+    const protocolItems = items.map((it: any, i: number) => ({
+      label: it.label,
+      detail: it.task || it.prescription || "",
+      done: !!checked[i]
+    }));
     setStore((s: any) => {
-      const entry = { date: today(), notes };
+      const entry = { date: today(), phaseId: phase.id, protocolItems, notes };
       return {
         ...s,
         logs: { ...s.logs, [skill]: [...(s.logs[skill] || []), entry] },
@@ -811,12 +857,38 @@ function LogSessionModal({ skill, onClose, setStore }: any) {
     });
     onClose();
   }
+
   return (
     <div className={cx("modal-overlay")} onClick={onClose}>
       <div className={cx("modal")} onClick={(e) => e.stopPropagation()}>
-        <span className={cx("eyebrow")}>LOG TODAY'S SESSION · {SKILL_META[skill].short}</span>
-        <h3 style={{ margin: 0 }}>Session note</h3>
-        <textarea rows={5} placeholder="What happened today — breakthroughs, tension, numbers worth remembering..." value={notes} onChange={(e) => setNotes(e.target.value)} autoFocus />
+        <span className={cx("eyebrow")}>LOG TODAY'S SESSION · {SKILL_META[skill].short} · {phase.title}</span>
+        <h3 style={{ margin: 0 }}>Today's predefined protocol</h3>
+        {items.length === 0 ? (
+          <p style={{ fontSize: 13, color: "var(--ink-dim)", margin: 0 }}>
+            No predefined protocol items are defined for this phase yet — log a note below instead.
+          </p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            {items.map((it: any, i: number) => (
+              <label key={i} className={cx("drill-row")} style={{ cursor: "pointer", gridTemplateColumns: "20px 1fr", padding: "9px 0" }}>
+                <input type="checkbox" className={cx("chk")} checked={!!checked[i]} onChange={() => toggle(i)} />
+                <div>
+                  <b style={{ fontSize: 13.5, textDecoration: checked[i] ? "line-through" : "none", color: checked[i] ? "var(--ink-faint)" : "var(--ink)" }}>
+                    {it.label}
+                  </b>
+                  <p style={{ margin: "3px 0 0", fontSize: 12.5, color: "var(--ink-dim)" }}>
+                    {it.task}{it.prescription ? " — " + it.prescription : ""}
+                  </p>
+                </div>
+              </label>
+            ))}
+            <span className={cx("mono")} style={{ fontSize: 11, color: "var(--ink-dim)", marginTop: 6 }}>{doneCount} / {items.length} done today</span>
+          </div>
+        )}
+        <div className={cx("field")}>
+          <label>NOTES (OPTIONAL)</label>
+          <textarea rows={3} placeholder="Anything worth remembering — breakthroughs, tension, numbers..." value={notes} onChange={(e) => setNotes(e.target.value)} />
+        </div>
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
           <button className={cx("topbtn", "ghost")} onClick={onClose}>CANCEL</button>
           <button className={cx("topbtn", "primary")} onClick={submit}>CONFIRM LOG</button>
@@ -844,14 +916,25 @@ function computeStreak(calendarLog: any): number {
 }
 
 /* ============================== App ============================== */
-export default function MasteryOS() {
+export default function MasteryOS({ initialStore }: { initialStore?: any }) {
   const [store, setStoreRaw] = useState<any>(defaultStore);
   const [hydrated, setHydrated] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const setStore = useCallback((fn: any) => setStoreRaw((prev: any) => (typeof fn === "function" ? fn(prev) : fn)), []);
 
-  useEffect(() => { setStoreRaw(loadStore()); setHydrated(true); }, []);
-  useEffect(() => { if (hydrated) saveStore(store); }, [store, hydrated]);
+  // Server loaded this from Supabase (mastery_state) before render -- merge it
+  // over the defaults and mark hydrated so the save effect below can start.
+  useEffect(() => { setStoreRaw({ ...defaultStore(), ...(initialStore || {}) }); setHydrated(true); }, [initialStore]);
+
+  // Debounced save back to Supabase on every change, so progress follows you
+  // across devices instead of staying stuck in one browser's localStorage.
+  const saveTimeout = useRef<any>(null);
+  useEffect(() => {
+    if (!hydrated) return;
+    if (saveTimeout.current) clearTimeout(saveTimeout.current);
+    saveTimeout.current = setTimeout(() => { saveMasteryState(store).catch(() => {}); }, 800);
+    return () => { if (saveTimeout.current) clearTimeout(saveTimeout.current); };
+  }, [store, hydrated]);
 
   const activeSkill = store.activeSkill;
   const activePhaseId = store.activePhase[activeSkill];
@@ -885,6 +968,9 @@ export default function MasteryOS() {
   return (
     <div className={cx(inter.className, jetbrainsMono.variable, "app")} style={{ fontFamily: inter.style.fontFamily }}>
         <div className={cx("topbar")}>
+          <Link href="/today" className={cx("topbtn", "ghost")} style={{ textDecoration: "none", display: "inline-flex", alignItems: "center" }}>
+            ← COMMAND CENTER
+          </Link>
           <span className={cx("brand")}>LIFE <span>// MASTERY OS</span></span>
           <Badge>{streak}-DAY STREAK</Badge>
           <Badge cls={load}>TODAY · {load.toUpperCase()} LOAD</Badge>
@@ -914,7 +1000,7 @@ export default function MasteryOS() {
           )}
         </main>
 
-        {modalOpen && <LogSessionModal skill={activeSkill} onClose={() => setModalOpen(false)} setStore={setStore} />}
+        {modalOpen && <LogSessionModal skill={activeSkill} phase={phase} onClose={() => setModalOpen(false)} setStore={setStore} />}
     </div>
   );
 }
