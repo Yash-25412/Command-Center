@@ -505,8 +505,14 @@ function PhaseDossier({ skill, phase, store, setStore }: any) {
   }
 
   const tabs = isPiano
-    ? [["focus", "Focus"], ["theory", "Theory & Bridges"], ["drills", "Drills & Protocol"], ["gate", "Phase Gate"], ["notes", "Field Notes"]]
-    : [["focus", "Focus"], ["theory", "Theory & Form Cues"], ["protocol", "Protocol"], ["guardrails", "Pre-Flight & Guardrails"], ["gate", "Phase Gate"], ["notes", "Field Notes"]];
+    ? [["focus", "Focus"], ["theory", "Theory & Bridges"], ["drills", "Drills & Protocol"], ["gate", "Phase Gate"], ["notes", "Field Notes"], ["log", "Session Log"]]
+    : [["focus", "Focus"], ["theory", "Theory & Form Cues"], ["protocol", "Protocol"], ["guardrails", "Pre-Flight & Guardrails"], ["gate", "Phase Gate"], ["notes", "Field Notes"], ["log", "Session Log"]];
+
+  // Every "+ Log Today's Session" submission lands in store.logs[skill] --
+  // this is the one place that history is actually surfaced, per-skill and
+  // per-phase, instead of just a colored blob on the consolidated calendar.
+  const skillLogs: any[] = store.logs[skill] || [];
+  const phaseLogs = skillLogs.filter((l: any) => l.phaseId === phase.id);
 
   return (
     <div className={cx("card")} style={{ "--active-color": color, display: "flex", flexDirection: "column", gap: 16 } as any}>
@@ -717,7 +723,46 @@ function PhaseDossier({ skill, phase, store, setStore }: any) {
           <span className={cx("eyebrow")}>PHASE LEARNINGS &amp; FIELD NOTES</span>
           {(phase.fieldNotePrompts || []).map((p: string, i: number) => <p key={i} style={{ fontSize: 13, color: "var(--ink-dim)", margin: 0 }}>· {p}</p>)}
           <textarea rows={6} placeholder="Write your timestamped reflections here..." value={noteVal} onChange={(e) => setNote(e.target.value)} />
-          <span className={cx("mono")} style={{ fontSize: 10.5, color: "var(--ink-faint)" }}>autosaved to this device</span>
+          <span className={cx("mono")} style={{ fontSize: 10.5, color: "var(--ink-faint)" }}>autosaved</span>
+        </div>
+      )}
+
+      {tab === "log" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <span className={cx("eyebrow")}>
+            LOGGED SESSIONS · {skillLogs.length} TOTAL{phaseLogs.length ? " · " + phaseLogs.length + " IN THIS PHASE" : ""}
+          </span>
+          {skillLogs.length === 0 ? (
+            <p style={{ fontSize: 13, color: "var(--ink-dim)", margin: 0 }}>
+              Nothing logged yet for {SKILL_META[skill].short} — hit "+ Log Today's Session" once you've trained and it'll show up here, dated and tied to the phase you were in.
+            </p>
+          ) : (
+            [...skillLogs].reverse().map((entry: any, i: number) => {
+              const entryPhase = getPhase(skill, entry.phaseId);
+              const items = entry.protocolItems || [];
+              const doneCount = items.filter((it: any) => it.done).length;
+              return (
+                <div key={i} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: "12px 14px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+                    <span className={cx("mono")} style={{ fontSize: 12, fontWeight: 700, color }}>{entry.date}</span>
+                    <span className={cx("mono")} style={{ fontSize: 10.5, color: "var(--ink-faint)" }}>
+                      {entryPhase ? entryPhase.title : entry.phaseId}{items.length ? " · " + doneCount + "/" + items.length + " done" : ""}
+                    </span>
+                  </div>
+                  {items.length > 0 && (
+                    <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
+                      {items.map((it: any, j: number) => (
+                        <span key={j} style={{ fontSize: 12.5, color: it.done ? "var(--ink)" : "var(--ink-faint)" }}>
+                          {it.done ? "✓ " : "— "}{it.label}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {entry.notes && <p style={{ margin: "8px 0 0", fontSize: 12.5, color: "var(--ink-dim)" }}>{entry.notes}</p>}
+                </div>
+              );
+            })
+          )}
         </div>
       )}
     </div>
@@ -798,7 +843,10 @@ function WeeklyScheduleView({ store, setStore }: any) {
 
       <div className={cx("card")}>
         <span className={cx("eyebrow")}>EDGELOG-STYLE MONTHLY CONSISTENCY CALENDAR</span>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 5, marginTop: 12, marginBottom: 6 }}>
+        <p style={{ fontSize: 11.5, color: "var(--ink-dim)", margin: "6px 0 0" }}>
+          Consolidated view — each dot is one skill logged that day. For the full breakdown of what was ticked, open that skill's <b>Session Log</b> tab.
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 44px))", gap: 6, maxWidth: 350, marginTop: 12, marginBottom: 6 }}>
           {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => <div key={i} className={cx("mono")} style={{ textAlign: "center", fontSize: 10, color: "var(--ink-faint)" }}>{d}</div>)}
         </div>
         <div className={cx("heat-grid")}>
@@ -806,20 +854,34 @@ function WeeklyScheduleView({ store, setStore }: any) {
             if (!d) return <div key={i}></div>;
             const dateStr = year + "-" + String(month + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");
             const entry = store.calendarLog[dateStr];
-            let sessions = 0;
+            const loggedSkills = entry ? (["piano", "handstand", "dragonflag", "marathon"] as const).filter((k) => entry[k]) : [];
             let hasRed = false;
-            if (entry) {
-              ["piano", "handstand", "dragonflag", "marathon"].forEach((k) => { if (entry[k]) sessions++; });
-            }
             Object.keys(store.tissueStatus || {}).forEach((k) => { if (k.endsWith(dateStr) && store.tissueStatus[k] === "red") hasRed = true; });
             let bg = "#161B22";
-            if (entry && entry.recoveryBuff) bg = "rgba(167,139,250,.35)";
-            else if (sessions >= 3) bg = "#10B981";
-            else if (sessions === 2) bg = "rgba(16,185,129,.6)";
-            else if (sessions === 1) bg = "rgba(16,185,129,.3)";
-            if (hasRed) bg = "#EF4444";
+            if (entry && entry.recoveryBuff) bg = "rgba(167,139,250,.3)";
+            else if (loggedSkills.length >= 3) bg = "rgba(16,185,129,.35)";
+            else if (loggedSkills.length === 2) bg = "rgba(16,185,129,.2)";
+            else if (loggedSkills.length === 1) bg = "rgba(16,185,129,.1)";
+            if (hasRed) bg = "rgba(239,68,68,.25)";
             const isToday = dateStr === today();
-            return <div key={i} className={cx("heat-cell")} style={{ background: bg, boxShadow: isToday ? "0 0 0 2px #2DD4BF inset" : "none" }} title={dateStr}>{d}</div>;
+            const titleBits = [dateStr];
+            if (loggedSkills.length) titleBits.push(loggedSkills.map((k) => SKILL_META[k].short).join(", "));
+            if (entry && entry.recoveryBuff) titleBits.push("Recovery buff");
+            return (
+              <div
+                key={i}
+                className={cx("heat-cell")}
+                style={{ background: bg, boxShadow: isToday ? "0 0 0 2px #2DD4BF inset" : "none" }}
+                title={titleBits.join(" — ")}
+              >
+                <span>{d}</span>
+                {loggedSkills.length > 0 && (
+                  <div className={cx("heat-dots")}>
+                    {loggedSkills.map((k) => <span key={k} className={cx("heat-dot")} style={{ background: SKILL_META[k].color }} />)}
+                  </div>
+                )}
+              </div>
+            );
           })}
         </div>
       </div>
