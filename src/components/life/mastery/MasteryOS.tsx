@@ -36,8 +36,30 @@ function defaultStore(): any {
     activePhase: { piano: "phase-1", handstand: "hs-p1", dragonflag: "df-p1", marathon: "run-p1" },
     gateChecks: {}, drillChecks: {}, habitChecks: {}, fieldNotes: {},
     preflightChecks: {}, tissueStatus: {}, calendarLog: {}, logs: { piano: [], handstand: [], dragonflag: [], marathon: [] },
-    recoveryBuff: {}
+    recoveryBuff: {}, gateClearedDates: {}
   };
+}
+
+// Removes one logged session (with confirmation, since this is the fix for
+// accidental duplicate logs) and keeps calendarLog in sync -- if that was
+// the only entry for that skill on that date, the calendar dot/cell for it
+// comes down too.
+function deleteLogEntry(setStore: any, skill: string, index: number) {
+  setStore((s: any) => {
+    const arr = [...(s.logs[skill] || [])];
+    const removed = arr[index];
+    arr.splice(index, 1);
+    const nextCalendarLog = { ...s.calendarLog };
+    if (removed) {
+      const stillLoggedThatDay = arr.some((l: any) => l.date === removed.date);
+      if (!stillLoggedThatDay && nextCalendarLog[removed.date]) {
+        const dayEntry = { ...nextCalendarLog[removed.date] };
+        delete dayEntry[skill];
+        nextCalendarLog[removed.date] = dayEntry;
+      }
+    }
+    return { ...s, logs: { ...s.logs, [skill]: arr }, calendarLog: nextCalendarLog };
+  });
 }
 
 /* ============================== audio ============================== */
@@ -491,7 +513,17 @@ function PhaseDossier({ skill, phase, store, setStore }: any) {
 
   function toggleGate(i: number) {
     const key = skill + "-" + phase.id + "-gate-" + i;
-    setStore((s: any) => ({ ...s, gateChecks: { ...s.gateChecks, [key]: !s.gateChecks[key] } }));
+    const clearKey = skill + "-" + phase.id;
+    setStore((s: any) => {
+      const nextChecks = { ...s.gateChecks, [key]: !s.gateChecks[key] };
+      const allDone = gateCriteria.length > 0 && gateCriteria.every((_: any, idx: number) => nextChecks[skill + "-" + phase.id + "-gate-" + idx]);
+      // Stamp the date this phase's gate was FIRST fully cleared -- never
+      // overwritten by later unchecking/rechecking, so it stays a real
+      // historical record of "cleared on X" for the all-phases overview.
+      const nextClearedDates = { ...(s.gateClearedDates || {}) };
+      if (allDone && !nextClearedDates[clearKey]) nextClearedDates[clearKey] = today();
+      return { ...s, gateChecks: nextChecks, gateClearedDates: nextClearedDates };
+    });
   }
   function toggleCheckpoint(i: number) {
     const key = skill + "-" + phase.id + "-cp-" + i;
@@ -512,7 +544,10 @@ function PhaseDossier({ skill, phase, store, setStore }: any) {
   // this is the one place that history is actually surfaced, per-skill and
   // per-phase, instead of just a colored blob on the consolidated calendar.
   const skillLogs: any[] = store.logs[skill] || [];
-  const phaseLogs = skillLogs.filter((l: any) => l.phaseId === phase.id);
+  const phaseLogsWithIndex = skillLogs
+    .map((entry: any, idx: number) => ({ entry, idx }))
+    .filter((x: any) => x.entry.phaseId === phase.id)
+    .reverse();
 
   return (
     <div className={cx("card")} style={{ "--active-color": color, display: "flex", flexDirection: "column", gap: 16 } as any}>
@@ -728,41 +763,93 @@ function PhaseDossier({ skill, phase, store, setStore }: any) {
       )}
 
       {tab === "log" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <span className={cx("eyebrow")}>
-            LOGGED SESSIONS · {skillLogs.length} TOTAL{phaseLogs.length ? " · " + phaseLogs.length + " IN THIS PHASE" : ""}
-          </span>
-          {skillLogs.length === 0 ? (
-            <p style={{ fontSize: 13, color: "var(--ink-dim)", margin: 0 }}>
-              Nothing logged yet for {SKILL_META[skill].short} — hit "+ Log Today's Session" once you've trained and it'll show up here, dated and tied to the phase you were in.
-            </p>
-          ) : (
-            [...skillLogs].reverse().map((entry: any, i: number) => {
-              const entryPhase = getPhase(skill, entry.phaseId);
-              const items = entry.protocolItems || [];
-              const doneCount = items.filter((it: any) => it.done).length;
-              return (
-                <div key={i} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: "12px 14px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-                    <span className={cx("mono")} style={{ fontSize: 12, fontWeight: 700, color }}>{entry.date}</span>
-                    <span className={cx("mono")} style={{ fontSize: 10.5, color: "var(--ink-faint)" }}>
-                      {entryPhase ? entryPhase.title : entry.phaseId}{items.length ? " · " + doneCount + "/" + items.length + " done" : ""}
-                    </span>
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <span className={cx("eyebrow")}>THIS PHASE · {phaseLogsWithIndex.length} LOGGED</span>
+            {phaseLogsWithIndex.length === 0 ? (
+              <p style={{ fontSize: 13, color: "var(--ink-dim)", margin: 0 }}>
+                Nothing logged yet for {phase.title} — hit "+ Log Today's Session" once you've trained and it'll show up here.
+              </p>
+            ) : (
+              phaseLogsWithIndex.map(({ entry, idx }: any) => {
+                const items = entry.protocolItems || [];
+                const doneCount = items.filter((it: any) => it.done).length;
+                return (
+                  <div key={idx} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: "12px 14px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+                      <span className={cx("mono")} style={{ fontSize: 12, fontWeight: 700, color }}>{entry.date}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span className={cx("mono")} style={{ fontSize: 10.5, color: "var(--ink-faint)" }}>
+                          {items.length ? doneCount + "/" + items.length + " done" : ""}
+                        </span>
+                        <button
+                          type="button"
+                          className={cx("mono")}
+                          style={{ all: "unset", cursor: "pointer", fontSize: 10.5, color: "var(--crimson)" }}
+                          onClick={() => { if (window.confirm("Delete this logged session (" + entry.date + ")? This can't be undone.")) deleteLogEntry(setStore, skill, idx); }}
+                        >
+                          DELETE
+                        </button>
+                      </div>
+                    </div>
+                    {items.length > 0 && (
+                      <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
+                        {items.map((it: any, j: number) => (
+                          <span key={j} style={{ fontSize: 12.5, color: it.done ? "var(--ink)" : "var(--ink-faint)" }}>
+                            {it.done ? "✓ " : "— "}{it.label}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {entry.notes && <p style={{ margin: "8px 0 0", fontSize: 12.5, color: "var(--ink-dim)" }}>{entry.notes}</p>}
                   </div>
-                  {items.length > 0 && (
-                    <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
-                      {items.map((it: any, j: number) => (
-                        <span key={j} style={{ fontSize: 12.5, color: it.done ? "var(--ink)" : "var(--ink-faint)" }}>
-                          {it.done ? "✓ " : "— "}{it.label}
+                );
+              })
+            )}
+          </div>
+
+          <div style={{ borderTop: "1px solid var(--border)", paddingTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+            <span className={cx("eyebrow")}>{SKILL_META[skill].short} · ALL PHASES AT A GLANCE</span>
+            <p style={{ fontSize: 11.5, color: "var(--ink-dim)", margin: 0 }}>
+              Which days each phase actually got trained, and how many days it took from first session to gate clear.
+            </p>
+            {getPhases(skill).map((p: any) => {
+              const pLogs = skillLogs.filter((l: any) => l.phaseId === p.id);
+              const dates = Array.from(new Set<string>(pLogs.map((l: any) => l.date))).sort();
+              const clearedDate = (store.gateClearedDates || {})[skill + "-" + p.id];
+              const firstDate = dates[0];
+              let daysToClear: number | null = null;
+              if (clearedDate && firstDate) {
+                daysToClear = Math.max(1, Math.round((new Date(clearedDate).getTime() - new Date(firstDate).getTime()) / 86400000) + 1);
+              }
+              const untouched = dates.length === 0 && !clearedDate;
+              return (
+                <div key={p.id} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: "11px 14px", opacity: untouched ? 0.45 : 1 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 8 }}>
+                    <b style={{ fontSize: 13.5 }}>{p.title}</b>
+                    {clearedDate ? (
+                      <span className={cx("mono")} style={{ fontSize: 10.5, color: "var(--emerald2)" }}>
+                        ✓ GATE CLEARED {clearedDate}{daysToClear ? " · " + daysToClear + " DAY" + (daysToClear === 1 ? "" : "S") : ""}
+                      </span>
+                    ) : dates.length > 0 ? (
+                      <span className={cx("mono")} style={{ fontSize: 10.5, color: "var(--ink-faint)" }}>IN PROGRESS · {dates.length} DAY{dates.length === 1 ? "" : "S"} LOGGED</span>
+                    ) : (
+                      <span className={cx("mono")} style={{ fontSize: 10.5, color: "var(--ink-faint)" }}>NOT STARTED</span>
+                    )}
+                  </div>
+                  {dates.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+                      {dates.map((d: string) => (
+                        <span key={d} className={cx("mono")} style={{ fontSize: 10.5, padding: "2px 7px", borderRadius: 4, background: "var(--surface2)", color: "var(--ink-dim)" }}>
+                          {d}
                         </span>
                       ))}
                     </div>
                   )}
-                  {entry.notes && <p style={{ margin: "8px 0 0", fontSize: 12.5, color: "var(--ink-dim)" }}>{entry.notes}</p>}
                 </div>
               );
-            })
-          )}
+            })}
+          </div>
         </div>
       )}
     </div>
@@ -826,63 +913,65 @@ function WeeklyScheduleView({ store, setStore }: any) {
         </ul>
       </div>
 
-      <div className={cx("card")}>
-        <span className={cx("eyebrow")} style={{ color: "var(--emerald2)" }}>SUNDAY RECOVERY BUFF RITUAL</span>
-        <p style={{ fontSize: 13, color: "var(--ink-dim)" }}>{sched.restDayBuff.rule}</p>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
-          {sched.restDayBuff.checklist.map((c: string, i: number) => (
-            <label key={i} style={{ display: "flex", gap: 10, alignItems: "center", cursor: "pointer", fontSize: 13.5 }}>
-              <input type="checkbox" className={cx("chk")} checked={!!buffChecks[i]} onChange={() => toggleBuff(i)} />{c}
-            </label>
-          ))}
+      <div className={cx("schedule-split")}>
+        <div className={cx("card")}>
+          <span className={cx("eyebrow")} style={{ color: "var(--emerald2)" }}>SUNDAY RECOVERY BUFF RITUAL</span>
+          <p style={{ fontSize: 13, color: "var(--ink-dim)" }}>{sched.restDayBuff.rule}</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
+            {sched.restDayBuff.checklist.map((c: string, i: number) => (
+              <label key={i} style={{ display: "flex", gap: 10, alignItems: "center", cursor: "pointer", fontSize: 13.5 }}>
+                <input type="checkbox" className={cx("chk")} checked={!!buffChecks[i]} onChange={() => toggleBuff(i)} />{c}
+              </label>
+            ))}
+          </div>
+          <button className={cx("topbtn", "primary")} style={{ marginTop: 14, opacity: allBuffChecked ? 1 : 0.4 }} disabled={!allBuffChecked} onClick={logRecoveryDay}>
+            {store.calendarLog[today()] && store.calendarLog[today()].recoveryBuff ? "✓ RECOVERY BUFF LOGGED" : "LOG RECOVERY DAY"}
+          </button>
         </div>
-        <button className={cx("topbtn", "primary")} style={{ marginTop: 14, opacity: allBuffChecked ? 1 : 0.4 }} disabled={!allBuffChecked} onClick={logRecoveryDay}>
-          {store.calendarLog[today()] && store.calendarLog[today()].recoveryBuff ? "✓ RECOVERY BUFF LOGGED" : "LOG RECOVERY DAY"}
-        </button>
-      </div>
 
-      <div className={cx("card")}>
-        <span className={cx("eyebrow")}>EDGELOG-STYLE MONTHLY CONSISTENCY CALENDAR</span>
-        <p style={{ fontSize: 11.5, color: "var(--ink-dim)", margin: "6px 0 0" }}>
-          Consolidated view — each dot is one skill logged that day. For the full breakdown of what was ticked, open that skill's <b>Session Log</b> tab.
-        </p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 44px))", gap: 6, maxWidth: 350, marginTop: 12, marginBottom: 6 }}>
-          {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => <div key={i} className={cx("mono")} style={{ textAlign: "center", fontSize: 10, color: "var(--ink-faint)" }}>{d}</div>)}
-        </div>
-        <div className={cx("heat-grid")}>
-          {cells.map((d, i) => {
-            if (!d) return <div key={i}></div>;
-            const dateStr = year + "-" + String(month + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");
-            const entry = store.calendarLog[dateStr];
-            const loggedSkills = entry ? (["piano", "handstand", "dragonflag", "marathon"] as const).filter((k) => entry[k]) : [];
-            let hasRed = false;
-            Object.keys(store.tissueStatus || {}).forEach((k) => { if (k.endsWith(dateStr) && store.tissueStatus[k] === "red") hasRed = true; });
-            let bg = "#161B22";
-            if (entry && entry.recoveryBuff) bg = "rgba(167,139,250,.3)";
-            else if (loggedSkills.length >= 3) bg = "rgba(16,185,129,.35)";
-            else if (loggedSkills.length === 2) bg = "rgba(16,185,129,.2)";
-            else if (loggedSkills.length === 1) bg = "rgba(16,185,129,.1)";
-            if (hasRed) bg = "rgba(239,68,68,.25)";
-            const isToday = dateStr === today();
-            const titleBits = [dateStr];
-            if (loggedSkills.length) titleBits.push(loggedSkills.map((k) => SKILL_META[k].short).join(", "));
-            if (entry && entry.recoveryBuff) titleBits.push("Recovery buff");
-            return (
-              <div
-                key={i}
-                className={cx("heat-cell")}
-                style={{ background: bg, boxShadow: isToday ? "0 0 0 2px #2DD4BF inset" : "none" }}
-                title={titleBits.join(" — ")}
-              >
-                <span>{d}</span>
-                {loggedSkills.length > 0 && (
-                  <div className={cx("heat-dots")}>
-                    {loggedSkills.map((k) => <span key={k} className={cx("heat-dot")} style={{ background: SKILL_META[k].color }} />)}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+        <div className={cx("card")}>
+          <span className={cx("eyebrow")}>EDGELOG-STYLE MONTHLY CONSISTENCY CALENDAR</span>
+          <p style={{ fontSize: 11.5, color: "var(--ink-dim)", margin: "6px 0 0" }}>
+            Each dot is one skill logged that day. Full breakdown lives in that skill's <b>Session Log</b> tab.
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 40px))", gap: 5, maxWidth: 315, marginTop: 12, marginBottom: 6 }}>
+            {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => <div key={i} className={cx("mono")} style={{ textAlign: "center", fontSize: 10, color: "var(--ink-faint)" }}>{d}</div>)}
+          </div>
+          <div className={cx("heat-grid")}>
+            {cells.map((d, i) => {
+              if (!d) return <div key={i}></div>;
+              const dateStr = year + "-" + String(month + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");
+              const entry = store.calendarLog[dateStr];
+              const loggedSkills = entry ? (["piano", "handstand", "dragonflag", "marathon"] as const).filter((k) => entry[k]) : [];
+              let hasRed = false;
+              Object.keys(store.tissueStatus || {}).forEach((k) => { if (k.endsWith(dateStr) && store.tissueStatus[k] === "red") hasRed = true; });
+              let bg = "#161B22";
+              if (entry && entry.recoveryBuff) bg = "rgba(167,139,250,.3)";
+              else if (loggedSkills.length >= 3) bg = "rgba(16,185,129,.35)";
+              else if (loggedSkills.length === 2) bg = "rgba(16,185,129,.2)";
+              else if (loggedSkills.length === 1) bg = "rgba(16,185,129,.1)";
+              if (hasRed) bg = "rgba(239,68,68,.25)";
+              const isToday = dateStr === today();
+              const titleBits = [dateStr];
+              if (loggedSkills.length) titleBits.push(loggedSkills.map((k) => SKILL_META[k].short).join(", "));
+              if (entry && entry.recoveryBuff) titleBits.push("Recovery buff");
+              return (
+                <div
+                  key={i}
+                  className={cx("heat-cell")}
+                  style={{ background: bg, boxShadow: isToday ? "0 0 0 2px #2DD4BF inset" : "none" }}
+                  title={titleBits.join(" — ")}
+                >
+                  <span>{d}</span>
+                  {loggedSkills.length > 0 && (
+                    <div className={cx("heat-dots")}>
+                      {loggedSkills.map((k) => <span key={k} className={cx("heat-dot")} style={{ background: SKILL_META[k].color }} />)}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>
@@ -896,7 +985,7 @@ function WeeklyScheduleView({ store, setStore }: any) {
 // Protocol/Drills tab lists for this phase), as a checklist you tick and
 // submit. The result -- which items you actually did -- is what lands in
 // logs[skill] and lights up today's cell on the calendar.
-function LogSessionModal({ skill, phase, onClose, setStore }: any) {
+function LogSessionModal({ skill, phase, store, onClose, setStore }: any) {
   const items: any[] = phase.dailyPractice || [];
   const [checked, setChecked] = useState<Record<number, boolean>>({});
   const [notes, setNotes] = useState("");
@@ -904,6 +993,15 @@ function LogSessionModal({ skill, phase, onClose, setStore }: any) {
   const doneCount = Object.keys(checked).filter((k) => checked[Number(k)]).length;
 
   function submit() {
+    // Guard against the accidental double-log -- warn instead of silently
+    // blocking, since a genuine second session the same day is legitimate.
+    const alreadyLoggedToday = (store.logs[skill] || []).some((l: any) => l.date === today() && l.phaseId === phase.id);
+    if (alreadyLoggedToday) {
+      const proceed = window.confirm(
+        "You've already logged a " + SKILL_META[skill].short + " session today in this phase. Log this as an additional session?"
+      );
+      if (!proceed) return;
+    }
     const protocolItems = items.map((it: any, i: number) => ({
       label: it.label,
       detail: it.task || it.prescription || "",
@@ -1067,7 +1165,7 @@ export default function MasteryOS({ initialStore }: { initialStore?: any }) {
           )}
         </main>
 
-        {modalOpen && <LogSessionModal skill={activeSkill} phase={phase} onClose={() => setModalOpen(false)} setStore={setStore} />}
+        {modalOpen && <LogSessionModal skill={activeSkill} phase={phase} store={store} onClose={() => setModalOpen(false)} setStore={setStore} />}
     </div>
   );
 }
