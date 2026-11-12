@@ -295,6 +295,8 @@ body {
   outline-offset: -2px;
 }
 
+}
+
 /* Work <-> Life Mastery section switch: a click-anchored reveal instead of
    a hard cut. TransitionLink sets --vt-x/--vt-y (as percentages, where the
    click landed) just before calling document.startViewTransition(). The
