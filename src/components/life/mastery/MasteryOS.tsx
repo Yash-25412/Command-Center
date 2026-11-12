@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Inter, JetBrains_Mono } from "next/font/google";
-import Link from "next/link";
+import TransitionLink from "@/components/TransitionLink";
 import styles from "./mastery.module.css";
 import PIANO_DATA from "./data/piano.json";
 import PHYSICAL_DATA from "./data/physical.json";
@@ -1133,9 +1133,9 @@ export default function MasteryOS({ initialStore }: { initialStore?: any }) {
   return (
     <div className={cx(inter.className, jetbrainsMono.variable, "app")} style={{ fontFamily: inter.style.fontFamily }}>
         <div className={cx("topbar")}>
-          <Link href="/today" className={cx("topbtn", "ghost")} style={{ textDecoration: "none", display: "inline-flex", alignItems: "center" }}>
+          <TransitionLink href="/today" className={cx("topbtn", "ghost")} style={{ textDecoration: "none", display: "inline-flex", alignItems: "center" }}>
             ← COMMAND CENTER
-          </Link>
+          </TransitionLink>
           <span className={cx("brand")}>LIFE <span>// MASTERY OS</span></span>
           <Badge>{streak}-DAY STREAK</Badge>
           <Badge cls={load}>TODAY · {load.toUpperCase()} LOAD</Badge>

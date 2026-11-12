@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import QuickAdd from "./QuickAdd";
-import ModeToggle from "./ModeToggle";
+import TransitionLink from "./TransitionLink";
 
 const NAV = [
   { href: "/today", label: "Today" },
@@ -56,7 +56,12 @@ export default function Sidebar({
         <span className="font-serif text-[19px] font-medium tracking-tight">Command Center</span>
       </div>
 
-      <ModeToggle />
+      <TransitionLink
+        href="/mastery"
+        className="flex h-9 items-center justify-center gap-1.5 rounded-full border border-line2 bg-sunk text-[12.5px] font-semibold text-ink2 hover:text-ink"
+      >
+        Life Mastery <span aria-hidden>&rarr;</span>
+      </TransitionLink>
 
       <button onClick={() => setQaOpen(true)} className="btn btn-pri h-[38px] justify-center">
         <svg viewBox="0 0 24 24" className="h-[17px] w-[17px]" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
