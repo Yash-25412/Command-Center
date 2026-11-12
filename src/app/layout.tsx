@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import PageFadeIn from "@/components/PageFadeIn";
 
 export const metadata: Metadata = {
   title: "Command Center",
@@ -16,7 +17,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body className="font-sans text-[14px] leading-relaxed">{children}</body>
+      <body className="font-sans text-[14px] leading-relaxed">
+        <PageFadeIn>{children}</PageFadeIn>
+      </body>
     </html>
   );
 }
