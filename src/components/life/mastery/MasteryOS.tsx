@@ -1,732 +1,493 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import { Inter, JetBrains_Mono } from "next/font/google";
-import TransitionLink from "@/components/TransitionLink";
-import styles from "./mastery.module.css";
+import { useCallback, useEffect, useRef, useState } from "react";
 import PIANO_DATA from "./data/piano.json";
 import PHYSICAL_DATA from "./data/physical.json";
 import { saveMasteryState } from "@/app/actions/mastery";
 
-const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800"] });
-const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--jbmono" });
+/*
+  Life // Mastery, Runway edition.
 
-/* ============================== class helper ============================== */
-function kebabToCamel(s: string): string {
-  return s.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
-}
-function cx(...classNames: Array<string | false | null | undefined>): string {
-  return classNames
-    .filter(Boolean)
-    .join(" ")
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((tok) => (styles as any)[kebabToCamel(tok)] || (styles as any)[tok] || tok)
-    .join(" ");
-}
+  Same store, same Supabase row (mastery_state), same phase/gate/log data as
+  before — only the surface changed. The old "telemetry" panels are reduced
+  to one compact tool strip per skill (metronome + drone, hold timer, tempo
+  counter, cadence beat). Gimmicks that recorded nothing (the on-screen
+  keyboard, the lever/torque slider, the distance/HR dials) are gone; actual
+  numbers belong in the session log notes.
+*/
 
-/* ============================== persistence ============================== */
-// The store lives in Supabase (table `mastery_state`, see
-// supabase/migration-mastery-os.sql) so progress survives across devices --
-// this just defines the shape and merges in whatever the server loaded.
-function defaultStore(): any {
-  return {
-    activeSkill: "piano",
-    activeTab: "workspace",
-    activePhase: { piano: "phase-1", handstand: "hs-p1", dragonflag: "df-p1", marathon: "run-p1" },
-    gateChecks: {}, drillChecks: {}, habitChecks: {}, fieldNotes: {},
-    preflightChecks: {}, tissueStatus: {}, calendarLog: {}, logs: { piano: [], handstand: [], dragonflag: [], marathon: [] },
-    recoveryBuff: {}, gateClearedDates: {}
-  };
-}
-
-// Removes one logged session (with confirmation, since this is the fix for
-// accidental duplicate logs) and keeps calendarLog in sync -- if that was
-// the only entry for that skill on that date, the calendar dot/cell for it
-// comes down too.
-function deleteLogEntry(setStore: any, skill: string, index: number) {
-  setStore((s: any) => {
-    const arr = [...(s.logs[skill] || [])];
-    const removed = arr[index];
-    arr.splice(index, 1);
-    const nextCalendarLog = { ...s.calendarLog };
-    if (removed) {
-      const stillLoggedThatDay = arr.some((l: any) => l.date === removed.date);
-      if (!stillLoggedThatDay && nextCalendarLog[removed.date]) {
-        const dayEntry = { ...nextCalendarLog[removed.date] };
-        delete dayEntry[skill];
-        nextCalendarLog[removed.date] = dayEntry;
-      }
-    }
-    return { ...s, logs: { ...s.logs, [skill]: arr }, calendarLog: nextCalendarLog };
-  });
-}
-
-/* ============================== audio ============================== */
-let _actx: AudioContext | null = null;
-function getCtx(): AudioContext | null {
-  if (!_actx) { try { _actx = new (window.AudioContext || (window as any).webkitAudioContext)(); } catch (e) {} }
-  return _actx;
-}
-function click(freq = 880, dur = 0.045, gainVal = 0.09) {
-  const ctx = getCtx(); if (!ctx) return;
-  const osc = ctx.createOscillator(); const gain = ctx.createGain();
-  osc.frequency.value = freq; osc.type = "sine";
-  gain.gain.setValueAtTime(gainVal, ctx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
-  osc.connect(gain); gain.connect(ctx.destination);
-  osc.start(); osc.stop(ctx.currentTime + dur);
-}
-function useMetronome(bpm: number, enabled: boolean, freq?: number) {
-  useEffect(() => {
-    if (!enabled || !bpm) return;
-    const ms = 60000 / bpm;
-    click(freq || 880);
-    const id = setInterval(() => click(freq || 880), ms);
-    return () => clearInterval(id);
-  }, [bpm, enabled, freq]);
-}
-function useDrone(on: boolean, freq?: number) {
-  const ref = useRef<any>(null);
-  useEffect(() => {
-    const ctx = getCtx(); if (!ctx) return;
-    if (on) {
-      const osc = ctx.createOscillator(); const gain = ctx.createGain();
-      osc.frequency.value = freq || 261.63; osc.type = "triangle";
-      gain.gain.value = 0.045;
-      osc.connect(gain); gain.connect(ctx.destination); osc.start();
-      ref.current = { osc, gain };
-    }
-    return () => { if (ref.current) { try { ref.current.osc.stop(); } catch (e) {} ref.current = null; } };
-  }, [on, freq]);
-}
-function playNote(freq: number) {
-  const ctx = getCtx(); if (!ctx) return;
-  const osc = ctx.createOscillator(); const gain = ctx.createGain();
-  osc.type = "triangle"; osc.frequency.value = freq;
-  gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-  gain.gain.linearRampToValueAtTime(0.14, ctx.currentTime + 0.02);
-  gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.9);
-  osc.connect(gain); gain.connect(ctx.destination);
-  osc.start(); osc.stop(ctx.currentTime + 0.95);
-}
-
-/* ============================== data adapters ============================== */
-const SKILL_META: Record<string, { label: string; short: string; color: string }> = {
-  piano: { label: "01 PIANO", short: "PIANO", color: "var(--piano)" },
-  handstand: { label: "02 HANDSTAND", short: "HANDSTAND", color: "var(--hs)" },
-  dragonflag: { label: "03 DRAGON FLAG", short: "DRAGON FLAG", color: "var(--df)" },
-  marathon: { label: "04 MARATHON", short: "MARATHON", color: "var(--run)" }
-};
+/* ------------------------------------------------------------------ data */
+type SkillId = "piano" | "handstand" | "dragonflag" | "marathon";
+const SKILLS: { id: SkillId; n: string; name: string; tint: string; body?: string }[] = [
+  { id: "piano", n: "01", name: "Piano", tint: "#e9d9c3" },
+  { id: "handstand", n: "02", name: "Handstand", tint: "#9dd3c8", body: "Wrists" },
+  { id: "dragonflag", n: "03", name: "Dragon Flag", tint: "#f2b8a0", body: "Lower back / neck" },
+  { id: "marathon", n: "04", name: "Marathon", tint: "#b8c7e8", body: "Shins / calves" }
+];
+const META = Object.fromEntries(SKILLS.map((s) => [s.id, s])) as Record<SkillId, (typeof SKILLS)[number]>;
 
 function physicalProgram(id: string): any {
   return (PHYSICAL_DATA as any).programs.find((p: any) => p.program.id === id);
 }
-const HS_PROGRAM = physicalProgram("handstand-zero-to-mastery");
-const DF_PROGRAM = physicalProgram("dragon-flag-zero-to-mastery");
-const RUN_PROGRAM = physicalProgram("running-zero-to-marathon");
-
+const PROGRAMS: Record<string, any> = {
+  handstand: physicalProgram("handstand-zero-to-mastery"),
+  dragonflag: physicalProgram("dragon-flag-zero-to-mastery"),
+  marathon: physicalProgram("running-zero-to-marathon")
+};
 function getPhases(skill: string): any[] {
-  if (skill === "piano") return (PIANO_DATA as any).phases;
-  if (skill === "handstand") return HS_PROGRAM.phases;
-  if (skill === "dragonflag") return DF_PROGRAM.phases;
-  if (skill === "marathon") return RUN_PROGRAM.phases;
-  return [];
+  return skill === "piano" ? (PIANO_DATA as any).phases : PROGRAMS[skill]?.phases || [];
 }
 function getPhase(skill: string, id: string): any {
   return getPhases(skill).find((p: any) => p.id === id) || getPhases(skill)[0];
 }
 function gateCriteriaOf(skill: string, phase: any): string[] {
   if (skill === "piano") return phase.gateCriteria || [];
-  const gateM = (phase.milestones || []).find((m: any) => m.type === "gate");
-  return gateM ? gateM.criteria : [];
+  const g = (phase.milestones || []).find((m: any) => m.type === "gate");
+  return g ? g.criteria : [];
 }
 function checkpointsOf(skill: string, phase: any): any[] {
   if (skill === "piano") return phase.drills || [];
   return (phase.milestones || []).filter((m: any) => m.type === "checkpoint");
 }
-function today(): string { return new Date().toISOString().slice(0, 10); }
-function toggleHabit(setStore: any, key: string) {
-  setStore((s: any) => ({ ...s, habitChecks: { ...s.habitChecks, [key]: !s.habitChecks[key] } }));
+// Local calendar day (not UTC) so a 1am session counts for the right day.
+function today(): string {
+  const d = new Date();
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}
+const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const SCHED = (PHYSICAL_DATA as any).weeklySchedule;
+function todayLoad(): string {
+  const d = SCHED.days.find((x: any) => x.day === DOW[new Date().getDay()]);
+  return d ? d.load : "low";
 }
 
-/* ============================== small UI atoms ============================== */
-function Badge({ children, cls }: { children: any; cls?: string }) {
-  return <span className={cx("badge", cls)}>{children}</span>;
+function defaultStore(): any {
+  return {
+    activeSkill: "piano",
+    activeTab: "workspace",
+    activePhase: { piano: "phase-1", handstand: "hs-p1", dragonflag: "df-p1", marathon: "run-p1" },
+    gateChecks: {},
+    drillChecks: {},
+    habitChecks: {},
+    fieldNotes: {},
+    preflightChecks: {},
+    tissueStatus: {},
+    calendarLog: {},
+    logs: { piano: [], handstand: [], dragonflag: [], marathon: [] },
+    recoveryBuff: {},
+    gateClearedDates: {}
+  };
 }
 
-function ToggleSwitch({ on, onToggle, labelOn, labelOff, color }: any) {
+function computeStreak(calendarLog: any): number {
+  let streak = 0;
+  const d = new Date();
+  for (let i = 0; i < 365; i++) {
+    const ds = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    const e = calendarLog[ds];
+    const ok = e && (e.piano || e.handstand || e.dragonflag || e.marathon || e.recoveryBuff);
+    if (ok) streak++;
+    else if (d.getDay() === 0 && !e) {
+      if (ds !== today()) break;
+    } else if (ds !== today()) break;
+    d.setDate(d.getDate() - 1);
+  }
+  return streak;
+}
+
+/* ----------------------------------------------------------------- audio */
+let _ctx: AudioContext | null = null;
+function ctx(): AudioContext | null {
+  if (!_ctx) {
+    try {
+      _ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    } catch (e) {}
+  }
+  return _ctx;
+}
+function click(freq = 880, dur = 0.045, vol = 0.09) {
+  const c = ctx();
+  if (!c) return;
+  const o = c.createOscillator();
+  const g = c.createGain();
+  o.frequency.value = freq;
+  g.gain.setValueAtTime(vol, c.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + dur);
+  o.connect(g);
+  g.connect(c.destination);
+  o.start();
+  o.stop(c.currentTime + dur);
+}
+function useMetronome(bpm: number, on: boolean, freq = 880) {
+  useEffect(() => {
+    if (!on || !bpm) return;
+    click(freq);
+    const id = setInterval(() => click(freq), 60000 / bpm);
+    return () => clearInterval(id);
+  }, [bpm, on, freq]);
+}
+function useDrone(on: boolean, freq = 261.63) {
+  const ref = useRef<any>(null);
+  useEffect(() => {
+    const c = ctx();
+    if (!c || !on) return;
+    const o = c.createOscillator();
+    const g = c.createGain();
+    o.type = "triangle";
+    o.frequency.value = freq;
+    g.gain.value = 0.045;
+    o.connect(g);
+    g.connect(c.destination);
+    o.start();
+    ref.current = o;
+    return () => {
+      try {
+        ref.current?.stop();
+      } catch (e) {}
+      ref.current = null;
+    };
+  }, [on, freq]);
+}
+
+/* -------------------------------------------------------------- atoms */
+const C = 2 * Math.PI * 34;
+function Ring({ p, size = 52, stroke = "#dce8ef", text }: { p: number; size?: number; stroke?: string; text?: string }) {
   return (
-    <div onClick={onToggle} style={{ cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-      <div className={cx("toggle")} style={{ background: on ? (color || "var(--emerald)") : "#30363D" }}>
-        <div className={cx("knob")} style={{ position: "absolute", top: 3, left: on ? 40 : 4, width: 28, height: 28, borderRadius: 999, background: "#E6EDF3", transition: "left .18s ease", boxShadow: "0 1px 4px rgba(0,0,0,.4)" }}></div>
-      </div>
-      <span className={cx("mono")} style={{ fontSize: 11, color: on ? (color || "var(--emerald)") : "var(--ink-dim)" }}>{on ? labelOn : labelOff}</span>
-    </div>
+    <svg aria-hidden="true" width={size} height={size} viewBox="0 0 80 80" className="flex-none">
+      <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="6" />
+      <circle cx="40" cy="40" r="34" fill="none" stroke={stroke} strokeWidth="6" strokeLinecap="round" strokeDasharray={`${C * Math.max(0, Math.min(1, p))} ${C}`} transform="rotate(-90 40 40)" style={{ transition: "stroke-dasharray .6s" }} />
+      {text && (
+        <text x="40" y="46" textAnchor="middle" fill="#e9ecef" fontFamily="var(--font-mono)" fontSize="17">
+          {text}
+        </text>
+      )}
+    </svg>
+  );
+}
+function Tick({ on, onClick, label }: { on: boolean; onClick: () => void; label: string }) {
+  return (
+    <button type="button" onClick={onClick} aria-label={label} aria-pressed={on} className={`chk ${on ? "chk-on" : ""}`}>
+      {on && (
+        <svg aria-hidden="true" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3.2} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M5 12.5l4.5 4.5L19 7" />
+        </svg>
+      )}
+    </button>
+  );
+}
+function Stepper({ value, set, min, max, step = 1, unit, label }: { value: number; set: (v: number) => void; min: number; max: number; step?: number; unit: string; label: string }) {
+  const clamp = (v: number) => Math.max(min, Math.min(max, v));
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full border border-[var(--glass-line2)] px-1" aria-label={label}>
+      <button type="button" aria-label={`Decrease ${label}`} onClick={() => set(clamp(value - step))} className="h-8 w-8 rounded-full text-ink2 hover:text-white">
+        −
+      </button>
+      <span className="min-w-[64px] text-center font-mono text-[13px]">
+        {value} <span className="text-ink3">{unit}</span>
+      </span>
+      <button type="button" aria-label={`Increase ${label}`} onClick={() => set(clamp(value + step))} className="h-8 w-8 rounded-full text-ink2 hover:text-white">
+        +
+      </button>
+    </span>
   );
 }
 
-function StatusSelector({ value, onChange, label }: any) {
+/* -------------------------------------------------------- compact tools */
+function PianoTools() {
+  const [bpm, setBpm] = useState(80);
+  const [metro, setMetro] = useState(false);
+  const [drone, setDrone] = useState(false);
+  useMetronome(bpm, metro);
+  useDrone(drone);
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <span className={cx("eyebrow")}>{label}</span>
-      <div className={cx("status-row")}>
-        {["green", "amber", "red"].map((s) => (
-          <div key={s} className={cx("status-btn", s, value === s && "on")} onClick={() => onChange(s)}>{s.toUpperCase()}</div>
-        ))}
-      </div>
+    <div className="flex flex-wrap items-center gap-2">
+      <Stepper value={bpm} set={setBpm} min={40} max={200} step={4} unit="bpm" label="tempo" />
+      <button type="button" className={`pill ${metro ? "pill-on" : ""}`} onClick={() => setMetro(!metro)}>
+        {metro ? "Metronome on" : "Metronome"}
+      </button>
+      <button type="button" className={`pill ${drone ? "pill-on" : ""}`} onClick={() => setDrone(!drone)}>
+        {drone ? "Sa drone on" : "Sa drone"}
+      </button>
     </div>
   );
 }
-
-// A plain number input + stepper is the real control -- direct, unambiguous,
-// no gesture to learn. The dial underneath is a live readout you *can* also
-// drag (pointer capture keeps tracking even once the cursor leaves the small
-// circle, so fast drags don't jump or lose the gesture), with
-// touch-action/userSelect locked down so dragging never highlights the number.
-function Dial({ value, min, max, step, onChange, label, unit, color }: any) {
-  const s = step || 1;
-  const dragRef = useRef<any>({ active: false, startY: 0, startVal: value });
-  useEffect(() => { dragRef.current.startVal = value; }, [value]);
-  const frac = (value - min) / (max - min);
-  const angle = -110 + frac * 220;
-  function clamp(v: number) { return Math.max(min, Math.min(max, v)); }
-  function onDown(e: any) {
-    e.preventDefault();
-    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
-    dragRef.current = { active: true, startY: e.clientY, startVal: value };
-  }
-  function onMove(e: any) {
-    if (!dragRef.current.active) return;
-    e.preventDefault();
-    const delta = (dragRef.current.startY - e.clientY) * ((max - min) / 220);
-    const next = clamp(Math.round((dragRef.current.startVal + delta) / s) * s);
-    onChange(next);
-  }
-  function onUp(e: any) {
-    dragRef.current.active = false;
-    try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (err) {}
-  }
-  function nudge(dir: number) { onChange(clamp(Math.round((value + dir * s) / s) * s)); }
-  return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-      <span className={cx("eyebrow")}>{label}</span>
-      <div
-        className={cx("dial")}
-        onPointerDown={onDown}
-        onPointerMove={onMove}
-        onPointerUp={onUp}
-        onPointerCancel={onUp}
-        style={{ touchAction: "none", userSelect: "none", WebkitUserSelect: "none" }}
-      >
-        <div style={{ position: "absolute", width: 4, height: 58, top: 10, left: "50%", background: color || "var(--amber)", borderRadius: 2, transformOrigin: "bottom center", transform: `translateX(-50%) rotate(${angle}deg)`, boxShadow: `0 0 6px ${color || "var(--amber)"}`, pointerEvents: "none" }}></div>
-        <span className={cx("mono")} style={{ fontSize: 22, fontWeight: 700, color: color || "var(--amber)", userSelect: "none", pointerEvents: "none" }}>{value}{unit || ""}</span>
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <button type="button" className={cx("topbtn", "ghost")} style={{ padding: "4px 11px" }} onClick={() => nudge(-1)}>−</button>
-        <input
-          type="number"
-          className={cx("mono")}
-          value={value}
-          min={min}
-          max={max}
-          step={s}
-          onChange={(e) => onChange(clamp(Number(e.target.value)))}
-          style={{ width: 62, textAlign: "center" }}
-        />
-        <button type="button" className={cx("topbtn", "ghost")} style={{ padding: "4px 11px" }} onClick={() => nudge(1)}>+</button>
-      </div>
-    </div>
-  );
-}
-
-function HoldTimer({ onFinish, color }: any) {
+function HoldTools() {
   const [running, setRunning] = useState(false);
-  const [elapsed, setElapsed] = useState(0);
-  const startRef = useRef(0);
+  const [ms, setMs] = useState(0);
+  const [best, setBest] = useState(0);
+  const start = useRef(0);
   useEffect(() => {
     if (!running) return;
-    startRef.current = Date.now() - elapsed * 1000;
-    const id = setInterval(() => setElapsed((Date.now() - startRef.current) / 1000), 50);
+    start.current = Date.now() - ms;
+    const id = setInterval(() => setMs(Date.now() - start.current), 100);
     return () => clearInterval(id);
-  }, [running]);
+  }, [running]); // eslint-disable-line react-hooks/exhaustive-deps
   function toggle() {
-    if (running) { setRunning(false); onFinish && onFinish(Math.round(elapsed * 10) / 10); }
-    else { setElapsed(0); setRunning(true); }
+    if (running) {
+      setRunning(false);
+      setBest((b) => Math.max(b, ms));
+      click(660, 0.12);
+    } else {
+      setMs(0);
+      setRunning(true);
+      click(990, 0.08);
+    }
   }
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-      <span className={cx("eyebrow")}>HOLD TIMER</span>
-      <div onClick={toggle} style={{ cursor: "pointer", width: 150, height: 150, borderRadius: 999, border: `2px solid ${running ? (color || "var(--emerald)") : "var(--border)"}`, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--surface2)", boxShadow: running ? `0 0 18px ${color || "var(--emerald)"}55` : "none" }}>
-        <span className={cx("mono")} style={{ fontSize: 28, fontWeight: 700, color: running ? (color || "var(--emerald)") : "var(--ink)" }}>{elapsed.toFixed(1)}s</span>
-      </div>
-      <span className={cx("mono")} style={{ fontSize: 11, color: "var(--ink-dim)" }}>{running ? "tap to stop & record" : "tap to start"}</span>
+    <div className="flex flex-wrap items-center gap-3">
+      <span className="font-mono text-[26px] font-light tabular-nums">{(ms / 1000).toFixed(1)}s</span>
+      <button type="button" className={`btn btn-sm ${running ? "" : "btn-pri"}`} onClick={toggle}>
+        {running ? "Stop hold" : "Start hold"}
+      </button>
+      {best > 0 && <span className="font-mono text-[12px] text-ink3">best today {(best / 1000).toFixed(1)}s</span>}
     </div>
   );
 }
-
-/* ============================== guardrail banner ============================== */
-function GuardBanner({ mode, text, color }: any) {
-  const bg = color === "red" ? "rgba(239,68,68,.08)" : color === "amber" ? "rgba(245,158,11,.08)" : "rgba(16,185,129,.08)";
-  const border = color === "red" ? "rgba(239,68,68,.3)" : color === "amber" ? "rgba(245,158,11,.3)" : "rgba(16,185,129,.3)";
-  const ink = color === "red" ? "#fca5a5" : color === "amber" ? "#f0cf9b" : "#9fe8c8";
-  const lbl = color === "red" ? "#EF4444" : color === "amber" ? "#F59E0B" : "#10B981";
-  return (
-    <div className={cx("guard-banner")} style={{ background: bg, borderColor: border }}>
-      <span className={cx("mono")} style={{ fontSize: 10, letterSpacing: ".08em", color: lbl }}>{mode}</span>
-      <span style={{ fontSize: 13, lineHeight: 1.55, color: ink }}>{text}</span>
-    </div>
-  );
-}
-
-/* ============================== chameleon telemetry per skill ============================== */
-function PianoTelemetry({ store, setStore }: any) {
-  const [bpm, setBpm] = useState(100);
-  const [metroOn, setMetroOn] = useState(false);
-  const [droneOn, setDroneOn] = useState(false);
-  const [slotIdx, setSlotIdx] = useState(0);
-  const [slotSecs, setSlotSecs] = useState(0);
-  const [running, setRunning] = useState(false);
-  const slots = [
-    { label: "0-5m Warm-up", secs: 5 * 60 },
-    { label: "5-15m Core Technique", secs: 10 * 60 },
-    { label: "15-22m Applied Repertoire", secs: 7 * 60 },
-    { label: "22-25m Cooldown", secs: 3 * 60 }
-  ];
-  useMetronome(bpm, metroOn, 988);
-  useDrone(droneOn, 261.63);
-  useEffect(() => {
-    if (!running) return;
-    const id = setInterval(() => {
-      setSlotSecs((s) => {
-        if (s + 1 >= slots[slotIdx].secs) {
-          if (slotIdx < slots.length - 1) { setSlotIdx((i) => i + 1); return 0; }
-          setRunning(false); return s;
-        }
-        return s + 1;
-      });
-    }, 1000);
-    return () => clearInterval(id);
-  }, [running, slotIdx]);
-
-  const WHITE = [{ n: "Sa", w: "C", f: 261.63 }, { n: "Re", w: "D", f: 293.66 }, { n: "Ga", w: "E", f: 329.63 }, { n: "Ma", w: "F", f: 349.23 }, { n: "Pa", w: "G", f: 392.0 }, { n: "Dha", w: "A", f: 440.0 }, { n: "Ni", w: "B", f: 493.88 }];
-  const BLACK = [{ n: "k.Re", w: "C#", f: 277.18, pos: 14.28 }, { n: "k.Ga", w: "D#", f: 311.13, pos: 28.56 }, { n: "t.Ma", w: "F#", f: 369.99, pos: 57.14 }, { n: "k.Dha", w: "G#", f: 415.30, pos: 71.42 }, { n: "k.Ni", w: "A#", f: 466.16, pos: 85.70 }];
-
-  return (
-    <div className={cx("telemetry-deck")}>
-      <div className={cx("card")} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        <span className={cx("eyebrow")}>SARGAM / WESTERN OCTAVE MAP</span>
-        <div className={cx("key-map")}>
-          {WHITE.map((k, i) => <div key={i} className={cx("wkey")} onClick={() => playNote(k.f)}><b>{k.n}</b><span>{k.w}</span></div>)}
-          {BLACK.map((k, i) => <div key={i} className={cx("bkey")} style={{ left: k.pos + "%" }} onClick={() => playNote(k.f)}>{k.n}</div>)}
-        </div>
-        <div style={{ display: "flex", gap: 10 }}>
-          <div className={cx("pill", droneOn && "on")} onClick={() => setDroneOn(!droneOn)}>{droneOn ? "● Sa DRONE ON" : "○ Sa DRONE"}</div>
-        </div>
-      </div>
-
-      <div className={cx("card")} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <span className={cx("eyebrow")}>TACTILE METRONOME &amp; 25-MIN SEQUENCER</span>
-        <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-          <Dial value={bpm} min={40} max={200} onChange={setBpm} label="TEMPO BPM" color="var(--piano)" />
-          <div className={cx("pill", metroOn && "on")} onClick={() => setMetroOn(!metroOn)}>{metroOn ? "● CLICK ON" : "○ CLICK"}</div>
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {slots.map((s, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, opacity: i === slotIdx ? 1 : 0.45 }}>
-              <div style={{ width: 9, height: 9, borderRadius: 999, background: i < slotIdx ? "var(--emerald)" : (i === slotIdx ? "var(--emerald2)" : "#30363D"), boxShadow: i === slotIdx ? "0 0 6px var(--emerald2)" : "none" }}></div>
-              <span style={{ fontSize: 12.5, flex: 1 }}>{s.label}</span>
-              <span className={cx("mono")} style={{ fontSize: 11, color: "var(--ink-dim)" }}>{i === slotIdx ? Math.floor(slotSecs / 60) + ":" + String(slotSecs % 60).padStart(2, "0") + " / " + Math.floor(s.secs / 60) + ":00" : Math.floor(s.secs / 60) + " min"}</span>
-            </div>
-          ))}
-        </div>
-        <button className={cx("topbtn", "primary")} onClick={() => { if (!running) { setSlotIdx(0); setSlotSecs(0); } setRunning(!running); }}>{running ? "PAUSE SEQUENCE" : "START 25-MIN SESSION"}</button>
-      </div>
-
-      <div className={cx("card")} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        <span className={cx("eyebrow")}>5-MIN TENSION DROP RULE</span>
-        <p style={{ fontSize: 13, color: "var(--ink-dim)", lineHeight: 1.6, margin: 0 }}>Every 5 minutes, drop your hands into your lap, shake them loose, then continue. Non-weighted keys build tension because nothing pushes back.</p>
-        <ToggleSwitch on={store.habitChecks["piano-tension-" + today()] || false} onToggle={() => toggleHabit(setStore, "piano-tension-" + today())} labelOn="DROPPED TODAY" labelOff="TAP WHEN DONE" color="var(--piano)" />
-      </div>
-    </div>
-  );
-}
-
-function HandstandTelemetry({ store, setStore }: any) {
-  const [coldStart, setColdStart] = useState(false);
-  const [catchRatio, setCatchRatio] = useState(0);
-  const [holdVal, setHoldVal] = useState(0);
-  const status = store.tissueStatus["handstand-" + today()] || "green";
-  function setStatus(v: string) { setStore((s: any) => ({ ...s, tissueStatus: { ...s.tissueStatus, ["handstand-" + today()]: v } })); }
-  return (
-    <div className={cx("telemetry-deck")}>
-      <div className={cx("card")} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-        <HoldTimer color="var(--hs)" onFinish={setHoldVal} />
-        {holdVal > 0 && <span className={cx("mono")} style={{ marginTop: 10, fontSize: 12, color: "var(--ink-dim)" }}>last hold: {holdVal}s</span>}
-      </div>
-      <div className={cx("card")} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <span className={cx("eyebrow")}>KICK-UP CATCH RATIO</span>
-        <div className={cx("mono")} style={{ fontSize: 40, fontWeight: 700, color: "var(--hs)", textAlign: "center" }}>{catchRatio}/10</div>
-        <div style={{ display: "flex", gap: 6 }}>
-          {Array.from({ length: 10 }).map((_, i) => (
-            <div key={i} onClick={() => setCatchRatio(i + 1)} style={{ flex: 1, height: 24, borderRadius: 4, background: i < catchRatio ? "var(--hs)" : "#1c2128", cursor: "pointer" }}></div>
-          ))}
-        </div>
-        <ToggleSwitch on={coldStart} onToggle={() => setColdStart(!coldStart)} labelOn="COLD-START ATTEMPT" labelOff="WARMED-UP ATTEMPT" color="var(--hs)" />
-      </div>
-      <div className={cx("card")} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <StatusSelector value={status} onChange={setStatus} label="WRIST STATUS" />
-        <GuardBanner mode={status === "green" ? "CLEARED" : "CAUTION"} color={status} text={status === "red" ? "Stop all loaded wrist work for 48-72 hours. See a physio if it returns." : status === "amber" ? "Keep holds to 15s or less today; no heel pulls." : "Wrists clear — proceed with today's protocol."} />
-      </div>
-    </div>
-  );
-}
-
-function DragonFlagTelemetry({ store, setStore }: any) {
-  const LEVERS = ["Hollow", "Tuck", "Advanced Tuck", "Single-Leg", "Straddle", "Full Dragon Flag"];
-  const TORQUE = [20, 45, 60, 75, 85, 100];
-  const [leverIdx, setLeverIdx] = useState(1);
+function TempoTools() {
   const [tempo, setTempo] = useState(5);
-  const [counting, setCounting] = useState(false);
-  const [count, setCount] = useState(0);
-  const status = store.tissueStatus["dragonflag-" + today()] || "green";
-  function setStatus(v: string) { setStore((s: any) => ({ ...s, tissueStatus: { ...s.tissueStatus, ["dragonflag-" + today()]: v } })); }
+  const [left, setLeft] = useState<number | null>(null);
+  const [reps, setReps] = useState(0);
   useEffect(() => {
-    if (!counting) return;
-    setCount(0);
-    let n = 0;
-    click(660);
-    const id = setInterval(() => {
-      n += 1;
-      if (n >= tempo) { clearInterval(id); setCounting(false); click(1200, 0.09, 0.12); return; }
-      click(660); setCount(n);
-    }, 1000);
-    return () => clearInterval(id);
-  }, [counting]);
+    if (left === null) return;
+    if (left === 0) {
+      click(520, 0.18);
+      setReps((r) => r + 1);
+      setLeft(null);
+      return;
+    }
+    click(left === 1 ? 990 : 780, 0.05);
+    const id = setTimeout(() => setLeft(left - 1), 1000);
+    return () => clearTimeout(id);
+  }, [left]);
   return (
-    <div className={cx("telemetry-deck")}>
-      <div className={cx("card")} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        <span className={cx("eyebrow")}>BIOMECHANICAL LEVER SELECTOR</span>
-        <input type="range" min={0} max={5} value={leverIdx} onChange={(e) => setLeverIdx(Number(e.target.value))} style={{ width: "100%" }} />
-        <div className={cx("mono")} style={{ fontSize: 16, fontWeight: 700, color: "var(--df)" }}>{LEVERS[leverIdx]}</div>
-        <div style={{ height: 10, borderRadius: 5, background: "#1c2128", overflow: "hidden" }}>
-          <div style={{ height: "100%", width: TORQUE[leverIdx] + "%", background: "var(--df)", transition: "width .2s" }}></div>
-        </div>
-        <span className={cx("mono")} style={{ fontSize: 11, color: "var(--ink-dim)" }}>relative shoulder torque: {TORQUE[leverIdx]}%</span>
-      </div>
-      <div className={cx("card")} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
-        <span className={cx("eyebrow")}>ECCENTRIC TEMPO PACEMAKER</span>
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <span className={cx("mono")} style={{ fontSize: 12, color: "var(--ink-dim)" }}>TEMPO</span>
-          <input type="number" value={tempo} min={2} max={8} onChange={(e) => setTempo(Number(e.target.value))} style={{ width: 60 }} />
-          <span className={cx("mono")} style={{ fontSize: 12, color: "var(--ink-dim)" }}>sec descent</span>
-        </div>
-        <div style={{ width: 150, height: 150, borderRadius: 999, border: `3px solid ${counting ? "var(--df)" : "var(--border)"}`, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--surface2)" }}>
-          <span className={cx("mono")} style={{ fontSize: 36, fontWeight: 700, color: "var(--df)" }}>{counting ? count : tempo}</span>
-        </div>
-        <button className={cx("topbtn", "primary")} onClick={() => setCounting(true)} disabled={counting} style={{ opacity: counting ? 0.5 : 1 }}>START REP</button>
-      </div>
-      <div className={cx("card")} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <StatusSelector value={status} onChange={setStatus} label="LUMBAR / NECK STATUS" />
-        <GuardBanner mode={status === "green" ? "CLEARED" : "CAUTION"} color={status} text={status === "red" ? "Stop all core loading today. See a physio if pain lasts 48h or returns." : status === "amber" ? "Shorten the lever and drop a set today." : "Lower back and neck clear — proceed."} />
-      </div>
+    <div className="flex flex-wrap items-center gap-2">
+      <Stepper value={tempo} set={setTempo} min={2} max={12} unit="s down" label="descent tempo" />
+      <button type="button" className="btn btn-pri btn-sm" onClick={() => setLeft(tempo)} disabled={left !== null}>
+        {left !== null ? `Lowering… ${left}` : "Start rep"}
+      </button>
+      <span className="font-mono text-[12px] text-ink3">{reps} reps</span>
     </div>
   );
 }
-
-function MarathonTelemetry({ store, setStore }: any) {
-  const [distance, setDistance] = useState(7.0);
-  const [duration, setDuration] = useState(40);
-  const [hr, setHr] = useState(148);
-  const [cadence, setCadence] = useState(170);
-  const [rpe, setRpe] = useState(5);
-  const [metroOn, setMetroOn] = useState(false);
-  const status = store.tissueStatus["marathon-" + today()] || "green";
-  function setStatus(v: string) { setStore((s: any) => ({ ...s, tissueStatus: { ...s.tissueStatus, ["marathon-" + today()]: v } })); }
-  useMetronome(cadence, metroOn, 1400);
-  const pace = duration && distance ? duration / distance : 0;
-  const paceMin = Math.floor(pace); const paceSec = Math.round((pace - paceMin) * 60);
+function CadenceTools() {
+  const [spm, setSpm] = useState(170);
+  const [on, setOn] = useState(false);
+  useMetronome(spm, on, 1100);
   return (
-    <div className={cx("telemetry-deck")}>
-      <div className={cx("card")} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <span className={cx("eyebrow")}>ZONE / PACE TELEMETRY LOGGER</span>
-        <div className={cx("two-col")}>
-          <div className={cx("field")}><label>DISTANCE (KM)</label><input type="number" step={0.1} value={distance} onChange={(e) => setDistance(Number(e.target.value))} /></div>
-          <div className={cx("field")}><label>DURATION (MIN)</label><input type="number" value={duration} onChange={(e) => setDuration(Number(e.target.value))} /></div>
-          <div className={cx("field")}><label>AVG HR</label><input type="number" value={hr} onChange={(e) => setHr(Number(e.target.value))} /></div>
-          <div className={cx("field")}><label>CADENCE (SPM)</label><input type="number" value={cadence} onChange={(e) => setCadence(Number(e.target.value))} /></div>
-          <div className={cx("field")}><label>RPE (1-10)</label><input type="number" min={1} max={10} value={rpe} onChange={(e) => setRpe(Number(e.target.value))} /></div>
-          <div className={cx("field")}><label>AVG PACE</label><div className={cx("mono")} style={{ fontSize: 20, fontWeight: 700, color: "var(--run)", paddingTop: 6 }}>{paceMin}:{String(paceSec).padStart(2, "0")}/km</div></div>
-        </div>
-      </div>
-      <div className={cx("card")} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
-        <span className={cx("eyebrow")}>170+ SPM CADENCE METRONOME</span>
-        <Dial value={cadence} min={140} max={200} onChange={setCadence} label="CADENCE" unit=" spm" color="var(--run)" />
-        <div className={cx("pill", metroOn && "on")} onClick={() => setMetroOn(!metroOn)}>{metroOn ? "● CLICK ON" : "○ CLICK"}</div>
-      </div>
-      <div className={cx("card")} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <StatusSelector value={status} onChange={setStatus} label="SHIN / CALF HOP-TEST STATUS" />
-        <GuardBanner mode={status === "green" ? "CLEARED" : "CAUTION"} color={status} text={status === "red" ? "Stop running for the day. Investigate before the next quality session." : status === "amber" ? "Easy aerobic only today, no quality or long run." : "Lower legs clear — proceed with today's prescription."} />
-      </div>
+    <div className="flex flex-wrap items-center gap-2">
+      <Stepper value={spm} set={setSpm} min={150} max={190} step={2} unit="spm" label="cadence" />
+      <button type="button" className={`pill ${on ? "pill-on" : ""}`} onClick={() => setOn(!on)}>
+        {on ? "Cadence beat on" : "Cadence beat"}
+      </button>
     </div>
   );
 }
+const TOOLS: Record<SkillId, { label: string; El: () => JSX.Element }> = {
+  piano: { label: "Metronome & drone", El: PianoTools },
+  handstand: { label: "Hold timer", El: HoldTools },
+  dragonflag: { label: "Tempo counter", El: TempoTools },
+  marathon: { label: "Cadence beat", El: CadenceTools }
+};
 
-const TELEMETRY: Record<string, any> = { piano: PianoTelemetry, handstand: HandstandTelemetry, dragonflag: DragonFlagTelemetry, marathon: MarathonTelemetry };
-
-/* ============================== phase timeline + dossier ============================== */
-function PhaseTimeline({ skill, activeId, onSelect, store }: any) {
-  const phases = getPhases(skill);
-  const color = SKILL_META[skill].color;
-  return (
-    <div className={cx("card")} style={{ "--active-color": color } as any}>
-      <span className={cx("eyebrow")}>PHASE TIMELINE</span>
-      <div className={cx("timeline-row")} style={{ marginTop: 10 }}>
-        {phases.map((p: any, i: number) => {
-          const gc = gateCriteriaOf(skill, p);
-          const done = gc.length > 0 && gc.every((_: any, gi: number) => store.gateChecks[skill + "-" + p.id + "-gate-" + gi]);
-          return (
-            <div key={p.id} className={cx("tl-node", p.id === activeId && "active")} onClick={() => onSelect(p.id)} style={{ "--active-color": color } as any}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span className={cx("num")}>P{p.order || i + 1}</span>
-                <div className={cx("tl-dot")} style={{ background: done ? "var(--emerald)" : (p.id === activeId ? color : "#30363D") }}></div>
-              </div>
-              <span className={cx("nm")}>{p.title}</span>
-              <span className={cx("wk")}>{p.weeks || p.weeksLabel}</span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function PhaseDossier({ skill, phase, store, setStore }: any) {
+/* ------------------------------------------------------------- dossier */
+function Dossier({ skill, phase, store, setStore }: { skill: SkillId; phase: any; store: any; setStore: any }) {
   const [tab, setTab] = useState("focus");
-  const color = SKILL_META[skill].color;
+  useEffect(() => setTab("focus"), [skill, phase.id]);
   const isPiano = skill === "piano";
+  const gate = gateCriteriaOf(skill, phase);
+  const gk = (i: number) => `${skill}-${phase.id}-gate-${i}`;
+  const gateDone = gate.filter((_, i) => store.gateChecks[gk(i)]).length;
   const checkpoints = checkpointsOf(skill, phase);
-  const gateCriteria = gateCriteriaOf(skill, phase);
-  const gateDoneCount = gateCriteria.filter((_: any, i: number) => store.gateChecks[skill + "-" + phase.id + "-gate-" + i]).length;
-  const fieldNoteKey = skill + "-" + phase.id;
-  const noteVal = store.fieldNotes[fieldNoteKey] || "";
+  const noteKey = `${skill}-${phase.id}`;
+  const habitKey = `${skill}-${phase.id}-habit-${today()}`;
+  const logs: any[] = store.logs[skill] || [];
+  const phaseLogs = logs.map((entry, idx) => ({ entry, idx })).filter((x) => x.entry.phaseId === phase.id).reverse();
 
   function toggleGate(i: number) {
-    const key = skill + "-" + phase.id + "-gate-" + i;
-    const clearKey = skill + "-" + phase.id;
     setStore((s: any) => {
-      const nextChecks = { ...s.gateChecks, [key]: !s.gateChecks[key] };
-      const allDone = gateCriteria.length > 0 && gateCriteria.every((_: any, idx: number) => nextChecks[skill + "-" + phase.id + "-gate-" + idx]);
-      // Stamp the date this phase's gate was FIRST fully cleared -- never
-      // overwritten by later unchecking/rechecking, so it stays a real
-      // historical record of "cleared on X" for the all-phases overview.
-      const nextClearedDates = { ...(s.gateClearedDates || {}) };
-      if (allDone && !nextClearedDates[clearKey]) nextClearedDates[clearKey] = today();
-      return { ...s, gateChecks: nextChecks, gateClearedDates: nextClearedDates };
+      const checks = { ...s.gateChecks, [gk(i)]: !s.gateChecks[gk(i)] };
+      const all = gate.length > 0 && gate.every((_, j) => checks[gk(j)]);
+      const cleared = { ...(s.gateClearedDates || {}) };
+      if (all && !cleared[noteKey]) cleared[noteKey] = today();
+      return { ...s, gateChecks: checks, gateClearedDates: cleared };
     });
   }
-  function toggleCheckpoint(i: number) {
-    const key = skill + "-" + phase.id + "-cp-" + i;
-    setStore((s: any) => ({ ...s, drillChecks: { ...s.drillChecks, [key]: !s.drillChecks[key] } }));
-  }
-  function toggleHabitDone() {
-    toggleHabit(setStore, skill + "-" + phase.id + "-habit-" + today());
-  }
-  function setNote(v: string) {
-    setStore((s: any) => ({ ...s, fieldNotes: { ...s.fieldNotes, [fieldNoteKey]: v } }));
+  const cpKey = (i: number) => `${skill}-${phase.id}-cp-${i}`;
+  const toggleCp = (i: number) => setStore((s: any) => ({ ...s, drillChecks: { ...s.drillChecks, [cpKey(i)]: !s.drillChecks[cpKey(i)] } }));
+  function deleteLog(idx: number) {
+    if (!window.confirm("Delete this logged session? This can't be undone.")) return;
+    setStore((s: any) => {
+      const arr = [...(s.logs[skill] || [])];
+      const removed = arr.splice(idx, 1)[0];
+      const cal = { ...s.calendarLog };
+      if (removed && !arr.some((l: any) => l.date === removed.date) && cal[removed.date]) {
+        const day = { ...cal[removed.date] };
+        delete day[skill];
+        cal[removed.date] = day;
+      }
+      return { ...s, logs: { ...s.logs, [skill]: arr }, calendarLog: cal };
+    });
   }
 
-  const tabs = isPiano
-    ? [["focus", "Focus"], ["theory", "Theory & Bridges"], ["drills", "Drills & Protocol"], ["gate", "Phase Gate"], ["notes", "Field Notes"], ["log", "Session Log"]]
-    : [["focus", "Focus"], ["theory", "Theory & Form Cues"], ["protocol", "Protocol"], ["guardrails", "Pre-Flight & Guardrails"], ["gate", "Phase Gate"], ["notes", "Field Notes"], ["log", "Session Log"]];
+  const tabs: [string, string][] = isPiano
+    ? [["focus", "Focus"], ["theory", "Theory"], ["practice", "Drills & practice"], ["gate", `Gate ${gateDone}/${gate.length}`], ["notes", "Notes"], ["log", `Log ${phaseLogs.length}`]]
+    : [["focus", "Focus"], ["theory", "Form cues"], ["practice", "Protocol"], ["guard", "Guardrails"], ["gate", `Gate ${gateDone}/${gate.length}`], ["notes", "Notes"], ["log", `Log ${phaseLogs.length}`]];
 
-  // Every "+ Log Today's Session" submission lands in store.logs[skill] --
-  // this is the one place that history is actually surfaced, per-skill and
-  // per-phase, instead of just a colored blob on the consolidated calendar.
-  const skillLogs: any[] = store.logs[skill] || [];
-  const phaseLogsWithIndex = skillLogs
-    .map((entry: any, idx: number) => ({ entry, idx }))
-    .filter((x: any) => x.entry.phaseId === phase.id)
-    .reverse();
+  const Block = ({ k, children }: { k: string; children: React.ReactNode }) => (
+    <div className="flex flex-col gap-1.5">
+      <span className="eyebrow">{k}</span>
+      <div className="text-[14px] leading-relaxed text-ink2">{children}</div>
+    </div>
+  );
 
   return (
-    <div className={cx("card")} style={{ "--active-color": color, display: "flex", flexDirection: "column", gap: 16 } as any}>
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-        <div>
-          <span className={cx("eyebrow")}>{phase.weeks || phase.weeksLabel} · {phase.durationWeeks} weeks</span>
-          <h2 style={{ margin: "4px 0 0", fontSize: 22, fontWeight: 800 }}>{phase.title}</h2>
-        </div>
-        <span className={cx("mono")} style={{ fontSize: 12, color }}>{gateCriteria.length ? gateDoneCount + " / " + gateCriteria.length + " gate" : ""}</span>
-      </div>
-
-      <div className={cx("dossier-tabs")} style={{ "--active-color": color } as any}>
-        {tabs.map(([k, l]) => <button key={k} className={cx("dossier-tab", tab === k && "on")} style={{ "--active-color": color } as any} onClick={() => setTab(k)}>{l}</button>)}
+    <section className="glass flex flex-col gap-5 rounded-[26px] p-6">
+      <div className="flex flex-wrap gap-1.5">
+        {tabs.map(([k, l]) => (
+          <button key={k} type="button" onClick={() => setTab(k)} className={`pill ${tab === k ? "pill-on" : ""}`}>
+            {l}
+          </button>
+        ))}
       </div>
 
       {tab === "focus" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <div>
-            <span className={cx("eyebrow")}>MECHANICAL SKILL UNLOCKED</span>
-            <p style={{ fontSize: 14, marginTop: 6, lineHeight: 1.6 }}>{phase.mechanicalSkill || (phase.coreFocus && phase.coreFocus.mechanicalSkill)}</p>
-          </div>
-          <div>
-            <span className={cx("eyebrow")}>MENTAL MODEL / BIOMECHANICAL UNLOCK</span>
-            <p style={{ fontSize: 14, marginTop: 6, lineHeight: 1.6, color: "var(--ink-dim)" }}>{phase.mentalModel || (phase.coreFocus && phase.coreFocus.mentalModel)}</p>
-          </div>
-          {phase.biomechanicalUnlock && <div><span className={cx("eyebrow")}>BIOMECHANICAL BOTTLENECK</span><p style={{ fontSize: 14, marginTop: 6, lineHeight: 1.6, color: "var(--ink-dim)" }}>{phase.biomechanicalUnlock}</p></div>}
-          {phase.frequency && <div><span className={cx("eyebrow")}>FREQUENCY</span><p style={{ fontSize: 13.5, marginTop: 6, color: "var(--ink-dim)" }}>{phase.frequency}</p></div>}
+        <div className="rise flex flex-col gap-4">
+          <Block k="What you unlock">{phase.mechanicalSkill || phase.coreFocus?.mechanicalSkill}</Block>
+          <Block k="Mental model">{phase.mentalModel || phase.coreFocus?.mentalModel}</Block>
+          {phase.biomechanicalUnlock && <Block k="Bottleneck">{phase.biomechanicalUnlock}</Block>}
+          {phase.frequency && <Block k="Frequency">{phase.frequency}</Block>}
+          {phase.offKeyboardHabit && (
+            <div className="flex items-center gap-3 rounded-[16px] border border-dashed border-[var(--glass-line2)] p-3.5">
+              <Tick on={!!store.habitChecks[habitKey]} onClick={() => setStore((s: any) => ({ ...s, habitChecks: { ...s.habitChecks, [habitKey]: !s.habitChecks[habitKey] } }))} label="Micro-habit done today" />
+              <span className="flex flex-col">
+                <span className="text-[13.5px] font-medium">{phase.offKeyboardHabit.title}</span>
+                <span className="text-[12.5px] text-ink3">{phase.offKeyboardHabit.task}</span>
+              </span>
+            </div>
+          )}
         </div>
       )}
 
       {tab === "theory" && (
-        <div>
-          {isPiano ? (phase.theoryConcepts || []).map((t: any, i: number) => (
-            <div key={i} className={cx("theory-item")}>
-              <h4>{t.title}</h4>
-              <p>{t.explanation}</p>
-              {t.bridge && <div className={cx("bridge-box")}><span className={cx("lbl")}>SARGAM BRIDGE</span>{t.bridge}</div>}
-            </div>
-          )) : (phase.formCues || []).map((fc: any, i: number) => (
-            <div key={i} className={cx("theory-item")}>
-              <h4>{fc.cue}</h4>
-              <p>{fc.why}</p>
-            </div>
-          ))}
+        <div className="rise flex flex-col gap-3">
+          {isPiano
+            ? (phase.theoryConcepts || []).map((t: any, i: number) => (
+                <div key={i} className="flex flex-col gap-1.5 rounded-[16px] border border-[var(--glass-line)] p-4">
+                  <span className="font-medium">{t.title}</span>
+                  <span className="text-[13.5px] leading-relaxed text-ink2">{t.explanation}</span>
+                  {t.bridge && <span className="rounded-[12px] bg-white/[0.03] px-3 py-2 text-[12.5px] text-teal">Sargam bridge · {t.bridge}</span>}
+                </div>
+              ))
+            : (phase.formCues || []).map((f: any, i: number) => (
+                <div key={i} className="flex flex-col gap-1 rounded-[16px] border border-[var(--glass-line)] p-4">
+                  <span className="font-medium">{f.cue}</span>
+                  <span className="text-[13.5px] leading-relaxed text-ink2">{f.why}</span>
+                </div>
+              ))}
           {!isPiano && (phase.theoryConcepts || []).length > 0 && (
-            <div style={{ marginTop: 10 }}>
-              <span className={cx("eyebrow")}>THEORY CHIPS</span>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
-                {phase.theoryConcepts.map((tc: string, i: number) => <span key={i} className={cx("qpill")}>{tc}</span>)}
-              </div>
+            <div className="flex flex-wrap gap-1.5">
+              {phase.theoryConcepts.map((t: string, i: number) => (
+                <span key={i} className="rounded-full border border-[var(--glass-line)] px-3 py-1 text-[12px] text-ink2">
+                  {t}
+                </span>
+              ))}
             </div>
           )}
         </div>
       )}
 
-      {tab === "drills" && isPiano && (
-        <div>
-          {(phase.drills || []).map((d: any, i: number) => (
-            <div key={i} className={cx("drill-row")}>
-              <div>
-                <h4 style={{ margin: "0 0 4px", fontSize: 14 }}>{d.title}</h4>
-                <p style={{ margin: 0, fontSize: 13, color: "var(--ink-dim)" }}>{d.description}</p>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span className={cx("tgt")}>{d.target}</span>
-                <input type="checkbox" className={cx("chk")} checked={!!store.drillChecks[skill + "-" + phase.id + "-cp-" + i]} onChange={() => toggleCheckpoint(i)} />
-              </div>
-            </div>
-          ))}
-          <div style={{ marginTop: 14 }}>
-            <span className={cx("eyebrow")}>25-MINUTE DAILY BLUEPRINT</span>
-            {(phase.dailyPractice || []).map((dp: any, i: number) => (
-              <div key={i} style={{ display: "grid", gridTemplateColumns: "110px 1fr", gap: 12, padding: "10px 0", borderBottom: "1px solid var(--border)" }}>
-                <div className={cx("mono")} style={{ fontSize: 11, color: "var(--ink-dim)" }}>{dp.time} min<br /><span style={{ color: "var(--ink-faint)" }}>{dp.bpm}</span></div>
-                <div><b style={{ fontSize: 13 }}>{dp.label}</b><p style={{ margin: "4px 0 0", fontSize: 12.5, color: "var(--ink-dim)" }}>{dp.task}</p></div>
+      {tab === "practice" && (
+        <div className="rise flex flex-col gap-4">
+          <div className="flex flex-col">
+            <span className="eyebrow mb-1">{isPiano ? "Daily blueprint" : "Daily protocol"}</span>
+            {(phase.dailyPractice || []).map((d: any, i: number) => (
+              <div key={i} className="grid grid-cols-[96px_1fr] gap-3 border-b border-[var(--glass-line)] py-2.5 last:border-0">
+                <span className="font-mono text-[11.5px] text-ink3">
+                  {isPiano ? `${d.time} min` : `Slot ${d.slot} · ${d.minutes}m`}
+                  {d.bpm ? <><br />{d.bpm}</> : null}
+                </span>
+                <span className="flex flex-col">
+                  <span className="text-[13.5px] font-medium">{d.label}</span>
+                  <span className="text-[12.5px] text-ink3">
+                    {d.task}
+                    {d.prescription ? ` — ${d.prescription}` : ""}
+                  </span>
+                </span>
               </div>
             ))}
           </div>
-          {phase.offKeyboardHabit && (
-            <div style={{ marginTop: 14, border: "1px dashed var(--emerald2)", borderRadius: 10, padding: "12px 14px" }}>
-              <span className={cx("eyebrow")} style={{ color: "var(--emerald2)" }}>OFF-KEYBOARD MICRO-HABIT · {phase.offKeyboardHabit.title}</span>
-              <p style={{ fontSize: 13, margin: "6px 0 10px", color: "var(--ink-dim)" }}>{phase.offKeyboardHabit.task}</p>
-              <ToggleSwitch on={!!store.habitChecks[skill + "-" + phase.id + "-habit-" + today()]} onToggle={toggleHabitDone} labelOn="DONE ON WALK/DESK" labelOff="TAP WHEN DONE" color="var(--emerald2)" />
-            </div>
-          )}
-          {phase.resources && phase.resources.length > 0 && (
-            <div style={{ marginTop: 14 }}>
-              <span className={cx("eyebrow")}>CURATED RESOURCES</span>
-              {phase.resources.map((r: any, i: number) => (
-                <div key={i} className={cx("res-item")}>
-                  <span className={cx("kind-chip")}>{r.kind}</span>
-                  <div><b>{r.name}</b><div style={{ color: "var(--ink-dim)", marginTop: 2 }}>{r.description}</div></div>
-                </div>
-              ))}
-            </div>
-          )}
-          {phase.youtubeQueries && phase.youtubeQueries.length > 0 && (
-            <div style={{ marginTop: 14 }}>
-              <span className={cx("eyebrow")}>1-CLICK YOUTUBE SEARCHES</span>
-              <div style={{ marginTop: 8 }}>
-                {phase.youtubeQueries.map((q: string, i: number) => <a key={i} className={cx("qpill")} target="_blank" rel="noopener noreferrer" href={"https://www.youtube.com/results?search_query=" + encodeURIComponent(q)}>{q}</a>)}
-              </div>
-            </div>
-          )}
-          {phase.whatToExpect && (
-            <div style={{ marginTop: 14 }}>
-              <span className={cx("eyebrow")}>WHAT TO EXPECT</span>
-              <p style={{ fontSize: 13.5, color: "var(--ink-dim)", marginTop: 6 }}>{phase.whatToExpect}</p>
-              {phase.breakthroughCues && phase.breakthroughCues.length > 0 && (
-                <ul style={{ paddingLeft: 18, marginTop: 8 }}>{phase.breakthroughCues.map((c: string, i: number) => <li key={i} style={{ fontSize: 13, color: "var(--ink-dim)", marginBottom: 4 }}>{c}</li>)}</ul>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {tab === "protocol" && !isPiano && (
-        <div>
-          <span className={cx("eyebrow")}>DAILY PROTOCOL BLUEPRINT</span>
-          {(phase.dailyPractice || []).map((dp: any, i: number) => (
-            <div key={i} style={{ display: "grid", gridTemplateColumns: "110px 1fr auto", gap: 12, padding: "10px 0", borderBottom: "1px solid var(--border)" }}>
-              <div className={cx("mono")} style={{ fontSize: 11, color: "var(--ink-dim)" }}>SLOT {dp.slot}<br />{dp.minutes} min</div>
-              <div><b style={{ fontSize: 13 }}>{dp.label}</b><p style={{ margin: "4px 0 0", fontSize: 12.5, color: "var(--ink-dim)" }}>{dp.task}</p></div>
-              <span className={cx("tgt")}>{dp.prescription}</span>
-            </div>
-          ))}
-          {phase.offKeyboardHabit && (
-            <div style={{ marginTop: 14, border: "1px dashed var(--emerald2)", borderRadius: 10, padding: "12px 14px" }}>
-              <span className={cx("eyebrow")} style={{ color: "var(--emerald2)" }}>OFF-SESSION MICRO-HABIT · {phase.offKeyboardHabit.title}</span>
-              <p style={{ fontSize: 13, margin: "6px 0 10px", color: "var(--ink-dim)" }}>{phase.offKeyboardHabit.task}</p>
-              <ToggleSwitch on={!!store.habitChecks[skill + "-" + phase.id + "-habit-" + today()]} onToggle={toggleHabitDone} labelOn="DONE" labelOff="TAP WHEN DONE" color="var(--emerald2)" />
-            </div>
-          )}
           {checkpoints.length > 0 && (
-            <div style={{ marginTop: 14 }}>
-              <span className={cx("eyebrow")}>CHECKPOINTS</span>
+            <div className="flex flex-col gap-1">
+              <span className="eyebrow mb-1">{isPiano ? "Drills" : "Checkpoints"}</span>
               {checkpoints.map((c: any, i: number) => (
-                <div key={i} className={cx("drill-row")}>
-                  <div><h4 style={{ margin: "0 0 4px", fontSize: 14 }}>{c.title}</h4>
-                    <p style={{ margin: 0, fontSize: 13, color: "var(--ink-dim)" }}>{(c.criteria || []).join(" ")}</p></div>
-                  <input type="checkbox" className={cx("chk")} checked={!!store.drillChecks[skill + "-" + phase.id + "-cp-" + i]} onChange={() => toggleCheckpoint(i)} />
+                <div key={i} className={`flex items-center gap-3 rounded-[12px] px-2 py-2 ${store.drillChecks[cpKey(i)] ? "is-done" : ""}`}>
+                  <Tick on={!!store.drillChecks[cpKey(i)]} onClick={() => toggleCp(i)} label={c.title} />
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="ttl text-[13.5px] font-medium">{c.title}</span>
+                    <span className="text-[12.5px] text-ink3">{c.description || (c.criteria || []).join(" ")}</span>
+                  </span>
+                  {c.target && <span className="rounded-full border border-[var(--glass-line)] px-2.5 py-0.5 font-mono text-[11px] text-ink2">{c.target}</span>}
                 </div>
               ))}
             </div>
           )}
+          {(phase.resources?.length || phase.youtubeQueries?.length) && (
+            <details className="rounded-[16px] border border-[var(--glass-line)] p-3.5">
+              <summary className="cursor-pointer text-[13px] font-medium text-ink2">Resources &amp; searches</summary>
+              <div className="mt-3 flex flex-col gap-2">
+                {(phase.resources || []).map((r: any, i: number) => (
+                  <span key={i} className="text-[13px]">
+                    <span className="mr-2 font-mono text-[10.5px] text-ink3">{r.kind}</span>
+                    <span className="font-medium">{r.name}</span> <span className="text-ink3">— {r.description}</span>
+                  </span>
+                ))}
+                <div className="flex flex-wrap gap-1.5">
+                  {(phase.youtubeQueries || []).map((q: string, i: number) => (
+                    <a key={i} target="_blank" rel="noopener noreferrer" href={"https://www.youtube.com/results?search_query=" + encodeURIComponent(q)} className="pill inline-flex items-center">
+                      {q}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </details>
+          )}
         </div>
       )}
 
-      {tab === "guardrails" && !isPiano && phase.guardrails && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div className={cx("dos-donts")}>
-            <div>
-              <span className={cx("eyebrow")} style={{ color: "var(--emerald)" }}>PRE-FLIGHT DOS</span>
+      {tab === "guard" && phase.guardrails && (
+        <div className="rise flex flex-col gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="flex flex-col gap-1">
+              <span className="eyebrow mb-1 text-teal">Pre-flight</span>
               {(phase.guardrails.dos || []).map((d: string, i: number) => {
-                const key = skill + "-" + phase.id + "-pf-" + i;
+                const k = `${skill}-${phase.id}-pf-${i}`;
                 return (
-                  <label key={i} className={cx("dos-item")} style={{ cursor: "pointer" }}>
-                    <input type="checkbox" className={cx("chk")} checked={!!store.preflightChecks[key]} onChange={() => setStore((s: any) => ({ ...s, preflightChecks: { ...s.preflightChecks, [key]: !s.preflightChecks[key] } }))} />
-                    <span style={{ fontSize: 13 }}>{d}</span>
-                  </label>
+                  <div key={i} className={`flex items-center gap-3 rounded-[12px] px-1.5 py-1.5 ${store.preflightChecks[k] ? "is-done" : ""}`}>
+                    <Tick on={!!store.preflightChecks[k]} onClick={() => setStore((s: any) => ({ ...s, preflightChecks: { ...s.preflightChecks, [k]: !s.preflightChecks[k] } }))} label={d} />
+                    <span className="ttl text-[13px]">{d}</span>
+                  </div>
                 );
               })}
             </div>
-            <div>
-              <span className={cx("eyebrow")} style={{ color: "var(--crimson)" }}>FORM BREAKDOWN DON'TS</span>
+            <div className="flex flex-col gap-1.5">
+              <span className="eyebrow mb-1 text-red">Form breakdown</span>
               {(phase.guardrails.donts || []).map((d: string, i: number) => (
-                <div key={i} className={cx("donts-item")}><span style={{ color: "var(--crimson)" }}>✕</span><span style={{ fontSize: 13, color: "var(--ink-dim)" }}>{d}</span></div>
+                <span key={i} className="text-[13px] text-ink2">
+                  <span className="mr-2 text-red">✕</span>
+                  {d}
+                </span>
               ))}
             </div>
           </div>
           {phase.guardrails.stopRule && (
-            <div className={cx("dos-donts")}>
-              <div className={cx("stop-card")} style={{ background: "rgba(245,158,11,.08)", border: "1px solid rgba(245,158,11,.3)" }}>
-                <span className={cx("mono")} style={{ fontSize: 10, color: "var(--amber)", letterSpacing: ".06em" }}>AMBER · DOWNGRADE</span>
-                <p style={{ margin: "6px 0 0", color: "#f0cf9b" }}>{phase.guardrails.stopRule.amber}</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-[16px] border border-[rgba(233,195,138,0.35)] bg-[rgba(233,195,138,0.06)] p-3.5 text-[13px]">
+                <span className="eyebrow text-amber">Amber · downgrade</span>
+                <p className="mt-1.5 text-ink2">{phase.guardrails.stopRule.amber}</p>
               </div>
-              <div className={cx("stop-card")} style={{ background: "rgba(239,68,68,.08)", border: "1px solid rgba(239,68,68,.3)" }}>
-                <span className={cx("mono")} style={{ fontSize: 10, color: "var(--red)", letterSpacing: ".06em" }}>RED · STOP NOW</span>
-                <p style={{ margin: "6px 0 0", color: "#fca5a5" }}>{phase.guardrails.stopRule.red}</p>
+              <div className="rounded-[16px] border border-[rgba(255,90,95,0.35)] bg-[rgba(255,90,95,0.06)] p-3.5 text-[13px]">
+                <span className="eyebrow text-red">Red · stop now</span>
+                <p className="mt-1.5 text-ink2">{phase.guardrails.stopRule.red}</p>
               </div>
             </div>
           )}
@@ -734,438 +495,524 @@ function PhaseDossier({ skill, phase, store, setStore }: any) {
       )}
 
       {tab === "gate" && (
-        <div>
-          <span className={cx("eyebrow")}>BOSS-LEVEL PHASE GATE · {gateDoneCount} / {gateCriteria.length} · {gateCriteria.length ? Math.round((100 * gateDoneCount) / gateCriteria.length) : 0}%</span>
-          <div style={{ marginTop: 10 }}>
-            {gateCriteria.map((c: string, i: number) => {
-              const key = skill + "-" + phase.id + "-gate-" + i;
-              return (
-                <label key={i} className={cx("gate-item")} style={{ cursor: "pointer" }}>
-                  <input type="checkbox" className={cx("chk")} checked={!!store.gateChecks[key]} onChange={() => toggleGate(i)} />
-                  <span style={{ textDecoration: store.gateChecks[key] ? "line-through" : "none", color: store.gateChecks[key] ? "var(--ink-faint)" : "var(--ink)" }}>{c}</span>
-                </label>
-              );
-            })}
-          </div>
-          {gateCriteria.length > 0 && gateDoneCount === gateCriteria.length && (
-            <div style={{ marginTop: 14 }}><Badge cls="low">PHASE GATE CLEARED — NEXT PHASE UNLOCKED</Badge></div>
+        <div className="rise flex flex-col gap-1">
+          {gate.map((c, i) => (
+            <div key={i} className={`flex items-center gap-3 rounded-[12px] px-2 py-2.5 ${store.gateChecks[gk(i)] ? "is-done" : ""}`}>
+              <Tick on={!!store.gateChecks[gk(i)]} onClick={() => toggleGate(i)} label={c} />
+              <span className="ttl text-[14px]">{c}</span>
+            </div>
+          ))}
+          {gate.length > 0 && gateDone === gate.length && (
+            <div className="rise mt-2 rounded-[14px] px-4 py-3 font-semibold text-[#07080a]" style={{ background: "linear-gradient(135deg,#F4F7F9,#C9DAE4)" }}>
+              Gate cleared{store.gateClearedDates?.[noteKey] ? ` on ${store.gateClearedDates[noteKey]}` : ""} — next phase unlocked.
+            </div>
           )}
         </div>
       )}
 
       {tab === "notes" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <span className={cx("eyebrow")}>PHASE LEARNINGS &amp; FIELD NOTES</span>
-          {(phase.fieldNotePrompts || []).map((p: string, i: number) => <p key={i} style={{ fontSize: 13, color: "var(--ink-dim)", margin: 0 }}>· {p}</p>)}
-          <textarea rows={6} placeholder="Write your timestamped reflections here..." value={noteVal} onChange={(e) => setNote(e.target.value)} />
-          <span className={cx("mono")} style={{ fontSize: 10.5, color: "var(--ink-faint)" }}>autosaved</span>
+        <div className="rise flex flex-col gap-2.5">
+          {(phase.fieldNotePrompts || phase.phaseLearningsPrompts || []).map((p: string, i: number) => (
+            <span key={i} className="text-[13px] text-ink3">· {p}</span>
+          ))}
+          <textarea
+            rows={7}
+            aria-label="Field notes"
+            className="field resize-y leading-relaxed"
+            placeholder="Reflections, numbers, breakthroughs…"
+            value={store.fieldNotes[noteKey] || ""}
+            onChange={(e) => {
+              const v = e.target.value;
+              setStore((s: any) => ({ ...s, fieldNotes: { ...s.fieldNotes, [noteKey]: v } }));
+            }}
+          />
+          <span className="font-mono text-[11px] text-ink3">Autosaved</span>
         </div>
       )}
 
       {tab === "log" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <span className={cx("eyebrow")}>THIS PHASE · {phaseLogsWithIndex.length} LOGGED</span>
-            {phaseLogsWithIndex.length === 0 ? (
-              <p style={{ fontSize: 13, color: "var(--ink-dim)", margin: 0 }}>
-                Nothing logged yet for {phase.title} — hit "+ Log Today's Session" once you've trained and it'll show up here.
-              </p>
-            ) : (
-              phaseLogsWithIndex.map(({ entry, idx }: any) => {
-                const items = entry.protocolItems || [];
-                const doneCount = items.filter((it: any) => it.done).length;
-                return (
-                  <div key={idx} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: "12px 14px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-                      <span className={cx("mono")} style={{ fontSize: 12, fontWeight: 700, color }}>{entry.date}</span>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <span className={cx("mono")} style={{ fontSize: 10.5, color: "var(--ink-faint)" }}>
-                          {items.length ? doneCount + "/" + items.length + " done" : ""}
-                        </span>
-                        <button
-                          type="button"
-                          className={cx("mono")}
-                          style={{ all: "unset", cursor: "pointer", fontSize: 10.5, color: "var(--crimson)" }}
-                          onClick={() => { if (window.confirm("Delete this logged session (" + entry.date + ")? This can't be undone.")) deleteLogEntry(setStore, skill, idx); }}
-                        >
-                          DELETE
-                        </button>
-                      </div>
-                    </div>
+        <div className="rise flex flex-col gap-3">
+          {phaseLogs.length === 0 && <span className="text-[13px] text-ink3">Nothing logged in this phase yet.</span>}
+          {phaseLogs.map(({ entry, idx }) => {
+            const items = entry.protocolItems || [];
+            return (
+              <div key={idx} className="flex flex-col gap-2 rounded-[16px] border border-[var(--glass-line)] p-3.5">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="font-mono text-[12.5px]" style={{ color: META[skill].tint }}>
+                    {entry.date}
+                  </span>
+                  <span className="flex items-center gap-3">
                     {items.length > 0 && (
-                      <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
-                        {items.map((it: any, j: number) => (
-                          <span key={j} style={{ fontSize: 12.5, color: it.done ? "var(--ink)" : "var(--ink-faint)" }}>
-                            {it.done ? "✓ " : "— "}{it.label}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    {entry.notes && <p style={{ margin: "8px 0 0", fontSize: 12.5, color: "var(--ink-dim)" }}>{entry.notes}</p>}
-                  </div>
-                );
-              })
-            )}
-          </div>
-
-          <div style={{ borderTop: "1px solid var(--border)", paddingTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
-            <span className={cx("eyebrow")}>{SKILL_META[skill].short} · ALL PHASES AT A GLANCE</span>
-            <p style={{ fontSize: 11.5, color: "var(--ink-dim)", margin: 0 }}>
-              Which days each phase actually got trained, and how many days it took from first session to gate clear.
-            </p>
-            {getPhases(skill).map((p: any) => {
-              const pLogs = skillLogs.filter((l: any) => l.phaseId === p.id);
-              const dates = Array.from(new Set<string>(pLogs.map((l: any) => l.date))).sort();
-              const clearedDate = (store.gateClearedDates || {})[skill + "-" + p.id];
-              const firstDate = dates[0];
-              let daysToClear: number | null = null;
-              if (clearedDate && firstDate) {
-                daysToClear = Math.max(1, Math.round((new Date(clearedDate).getTime() - new Date(firstDate).getTime()) / 86400000) + 1);
-              }
-              const untouched = dates.length === 0 && !clearedDate;
-              return (
-                <div key={p.id} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: "11px 14px", opacity: untouched ? 0.45 : 1 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 8 }}>
-                    <b style={{ fontSize: 13.5 }}>{p.title}</b>
-                    {clearedDate ? (
-                      <span className={cx("mono")} style={{ fontSize: 10.5, color: "var(--emerald2)" }}>
-                        ✓ GATE CLEARED {clearedDate}{daysToClear ? " · " + daysToClear + " DAY" + (daysToClear === 1 ? "" : "S") : ""}
+                      <span className="font-mono text-[11px] text-ink3">
+                        {items.filter((x: any) => x.done).length}/{items.length} done
                       </span>
-                    ) : dates.length > 0 ? (
-                      <span className={cx("mono")} style={{ fontSize: 10.5, color: "var(--ink-faint)" }}>IN PROGRESS · {dates.length} DAY{dates.length === 1 ? "" : "S"} LOGGED</span>
-                    ) : (
-                      <span className={cx("mono")} style={{ fontSize: 10.5, color: "var(--ink-faint)" }}>NOT STARTED</span>
                     )}
-                  </div>
-                  {dates.length > 0 && (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-                      {dates.map((d: string) => (
-                        <span key={d} className={cx("mono")} style={{ fontSize: 10.5, padding: "2px 7px", borderRadius: 4, background: "var(--surface2)", color: "var(--ink-dim)" }}>
-                          {d}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                    <button type="button" onClick={() => deleteLog(idx)} className="font-mono text-[11px] text-red hover:underline">
+                      Delete
+                    </button>
+                  </span>
                 </div>
-              );
-            })}
-          </div>
+                {items.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {items.map((x: any, j: number) => (
+                      <span key={j} className={`rounded-full border px-2.5 py-0.5 text-[11.5px] ${x.done ? "border-[var(--glass-line2)] text-ink" : "border-[var(--glass-line)] text-ink3 line-through"}`}>
+                        {x.label}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {entry.notes && <p className="text-[13px] text-ink2">{entry.notes}</p>}
+              </div>
+            );
+          })}
         </div>
       )}
-    </div>
+    </section>
   );
 }
 
-/* ============================== weekly schedule tab ============================== */
-const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-function todayLoad(): string {
-  const sched = (PHYSICAL_DATA as any).weeklySchedule;
-  const dow = DOW[new Date().getDay()];
-  const d = sched.days.find((x: any) => x.day === dow);
-  return d ? d.load : "low";
-}
-
-function WeeklyScheduleView({ store, setStore }: any) {
-  const sched = (PHYSICAL_DATA as any).weeklySchedule;
+/* --------------------------------------------------------------- week */
+function WeekView({ store, setStore }: { store: any; setStore: any }) {
   const dowToday = DOW[new Date().getDay()];
   const buffKey = "buff-" + today();
-  const buffChecks = store.recoveryBuff[buffKey] || {};
-  const allBuffChecked = sched.restDayBuff.checklist.every((_: any, i: number) => buffChecks[i]);
-
-  function toggleBuff(i: number) {
-    setStore((s: any) => ({ ...s, recoveryBuff: { ...s.recoveryBuff, [buffKey]: { ...(s.recoveryBuff[buffKey] || {}), [i]: !(s.recoveryBuff[buffKey] || {})[i] } } }));
-  }
-  function logRecoveryDay() {
-    setStore((s: any) => ({ ...s, calendarLog: { ...s.calendarLog, [today()]: { ...(s.calendarLog[today()] || {}), recoveryBuff: true } } }));
-  }
+  const buff = store.recoveryBuff[buffKey] || {};
+  const allBuff = SCHED.restDayBuff.checklist.every((_: any, i: number) => buff[i]);
+  const buffLogged = !!store.calendarLog[today()]?.recoveryBuff;
+  const loadTone: Record<string, string> = { high: "text-red border-[rgba(255,90,95,0.4)]", medium: "text-amber border-[rgba(233,195,138,0.4)]", moderate: "text-amber border-[rgba(233,195,138,0.4)]", low: "text-teal border-[rgba(157,211,200,0.4)]", rest: "text-ink2 border-[var(--glass-line2)]" };
 
   const now = new Date();
-  const year = now.getFullYear(), month = now.getMonth();
-  const firstDay = new Date(year, month, 1);
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const startWeekday = firstDay.getDay();
-  const cells: Array<number | null> = [];
-  for (let i = 0; i < startWeekday; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  const cells: (number | null)[] = [];
+  for (let i = 0; i < new Date(y, m, 1).getDay(); i++) cells.push(null);
+  for (let d = 1; d <= new Date(y, m + 1, 0).getDate(); d++) cells.push(d);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      <div className={cx("card")}>
-        <span className={cx("eyebrow")}>TODAY'S OPERATIONAL PRESCRIPTION · {dowToday.toUpperCase()}</span>
-        <table className={cx("sched-table")} style={{ marginTop: 12 }}>
-          <thead><tr><th>DAY</th><th>GYM</th><th>HANDSTAND</th><th>DRAGON FLAG</th><th>RUN</th><th>LOAD</th></tr></thead>
-          <tbody>
-            {sched.days.map((d: any, i: number) => (
-              <tr key={i} className={d.day === dowToday ? cx("today") : undefined}>
-                <td><b>{d.day}</b></td><td>{d.gym}</td><td>{d.handstand}</td><td>{d.dragonFlag}</td><td>{d.run}</td>
-                <td><span className={cx("load-chip", "badge", d.load)}>{d.load.toUpperCase()}{d.buff ? " · BUFF" : ""}</span></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <p style={{ fontSize: 12.5, color: "var(--ink-dim)", marginTop: 10 }}>{sched.assumptions}</p>
+    <div className="rise flex flex-col gap-4">
+      <div className="runway -mx-[clamp(18px,4vw,56px)] flex gap-3 overflow-x-auto px-[clamp(18px,4vw,56px)] pb-3">
+        {SCHED.days.map((d: any) => {
+          const on = d.day === dowToday;
+          return (
+            <div
+              key={d.day}
+              className="glass flex w-[220px] flex-none flex-col gap-2.5 rounded-[24px] p-4"
+              style={on ? { borderColor: "rgba(220,232,239,0.35)", background: "linear-gradient(170deg, rgba(207,224,234,0.09), rgba(18,20,24,0.6))" } : undefined}
+            >
+              <div className="flex items-baseline justify-between">
+                <span className="text-[26px] font-light tracking-[-0.02em]">{d.day}</span>
+                <span className={`rounded-full border px-2 py-0.5 font-mono text-[10.5px] uppercase ${loadTone[d.load] || loadTone.rest}`}>
+                  {d.load}
+                  {d.buff ? " · buff" : ""}
+                </span>
+              </div>
+              {[
+                ["Gym", d.gym],
+                ["Handstand", d.handstand],
+                ["Dragon flag", d.dragonFlag],
+                ["Run", d.run]
+              ].map(([k, v]) => (
+                <div key={k} className="flex flex-col">
+                  <span className="font-mono text-[10px] tracking-[0.14em] text-ink3">{String(k).toUpperCase()}</span>
+                  <span className="text-[12.5px] leading-snug text-ink2">{v || "—"}</span>
+                </div>
+              ))}
+            </div>
+          );
+        })}
       </div>
 
-      <div className={cx("card")}>
-        <span className={cx("eyebrow")}>COLLISION &amp; LOAD RULES</span>
-        <ul style={{ paddingLeft: 18, marginTop: 10 }}>
-          {sched.rules.map((r: string, i: number) => <li key={i} style={{ fontSize: 13.5, color: "var(--ink-dim)", marginBottom: 8 }}>{r}</li>)}
-        </ul>
-      </div>
-
-      <div className={cx("schedule-split")}>
-        <div className={cx("card")}>
-          <span className={cx("eyebrow")} style={{ color: "var(--emerald2)" }}>SUNDAY RECOVERY BUFF RITUAL</span>
-          <p style={{ fontSize: 13, color: "var(--ink-dim)" }}>{sched.restDayBuff.rule}</p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
-            {sched.restDayBuff.checklist.map((c: string, i: number) => (
-              <label key={i} style={{ display: "flex", gap: 10, alignItems: "center", cursor: "pointer", fontSize: 13.5 }}>
-                <input type="checkbox" className={cx("chk")} checked={!!buffChecks[i]} onChange={() => toggleBuff(i)} />{c}
-              </label>
+      <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
+        <section className="glass flex flex-col gap-3 rounded-[24px] p-5">
+          <div className="flex items-baseline justify-between">
+            <span className="eyebrow">Consistency · {now.toLocaleString("en-US", { month: "long" })}</span>
+            <span className="flex gap-2.5">
+              {SKILLS.map((s) => (
+                <span key={s.id} className="flex items-center gap-1 text-[11px] text-ink3">
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: s.tint }} />
+                  {s.name}
+                </span>
+              ))}
+            </span>
+          </div>
+          <div className="grid max-w-[420px] grid-cols-7 gap-1.5">
+            {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
+              <span key={i} className="text-center font-mono text-[10px] text-ink3">
+                {d}
+              </span>
             ))}
-          </div>
-          <button className={cx("topbtn", "primary")} style={{ marginTop: 14, opacity: allBuffChecked ? 1 : 0.4 }} disabled={!allBuffChecked} onClick={logRecoveryDay}>
-            {store.calendarLog[today()] && store.calendarLog[today()].recoveryBuff ? "✓ RECOVERY BUFF LOGGED" : "LOG RECOVERY DAY"}
-          </button>
-        </div>
-
-        <div className={cx("card")}>
-          <span className={cx("eyebrow")}>EDGELOG-STYLE MONTHLY CONSISTENCY CALENDAR</span>
-          <p style={{ fontSize: 11.5, color: "var(--ink-dim)", margin: "6px 0 0" }}>
-            Each dot is one skill logged that day. Full breakdown lives in that skill's <b>Session Log</b> tab.
-          </p>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 40px))", gap: 5, maxWidth: 315, marginTop: 12, marginBottom: 6 }}>
-            {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => <div key={i} className={cx("mono")} style={{ textAlign: "center", fontSize: 10, color: "var(--ink-faint)" }}>{d}</div>)}
-          </div>
-          <div className={cx("heat-grid")}>
             {cells.map((d, i) => {
-              if (!d) return <div key={i}></div>;
-              const dateStr = year + "-" + String(month + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");
-              const entry = store.calendarLog[dateStr];
-              const loggedSkills = entry ? (["piano", "handstand", "dragonflag", "marathon"] as const).filter((k) => entry[k]) : [];
-              let hasRed = false;
-              Object.keys(store.tissueStatus || {}).forEach((k) => { if (k.endsWith(dateStr) && store.tissueStatus[k] === "red") hasRed = true; });
-              let bg = "#161B22";
-              if (entry && entry.recoveryBuff) bg = "rgba(167,139,250,.3)";
-              else if (loggedSkills.length >= 3) bg = "rgba(16,185,129,.35)";
-              else if (loggedSkills.length === 2) bg = "rgba(16,185,129,.2)";
-              else if (loggedSkills.length === 1) bg = "rgba(16,185,129,.1)";
-              if (hasRed) bg = "rgba(239,68,68,.25)";
-              const isToday = dateStr === today();
-              const titleBits = [dateStr];
-              if (loggedSkills.length) titleBits.push(loggedSkills.map((k) => SKILL_META[k].short).join(", "));
-              if (entry && entry.recoveryBuff) titleBits.push("Recovery buff");
+              if (!d) return <span key={i} />;
+              const ds = `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+              const e = store.calendarLog[ds] || {};
+              const done = SKILLS.filter((s) => e[s.id]);
+              const isToday = ds === today();
               return (
                 <div
                   key={i}
-                  className={cx("heat-cell")}
-                  style={{ background: bg, boxShadow: isToday ? "0 0 0 2px #2DD4BF inset" : "none" }}
-                  title={titleBits.join(" — ")}
+                  title={[ds, ...done.map((s) => s.name), e.recoveryBuff ? "Recovery" : ""].filter(Boolean).join(" · ")}
+                  className="flex aspect-square flex-col items-center justify-center gap-1 rounded-[10px] border text-[11px]"
+                  style={{
+                    borderColor: isToday ? "#dce8ef" : "rgba(255,255,255,0.06)",
+                    background: done.length ? `rgba(220,232,239,${0.04 + done.length * 0.06})` : e.recoveryBuff ? "rgba(157,211,200,0.12)" : "transparent"
+                  }}
                 >
-                  <span>{d}</span>
-                  {loggedSkills.length > 0 && (
-                    <div className={cx("heat-dots")}>
-                      {loggedSkills.map((k) => <span key={k} className={cx("heat-dot")} style={{ background: SKILL_META[k].color }} />)}
-                    </div>
-                  )}
+                  <span className={done.length ? "text-ink" : "text-ink3"}>{d}</span>
+                  <span className="flex gap-0.5">
+                    {done.map((s) => (
+                      <span key={s.id} className="h-1 w-1 rounded-full" style={{ background: s.tint }} />
+                    ))}
+                  </span>
                 </div>
               );
             })}
           </div>
-        </div>
+        </section>
+
+        <section className="glass flex flex-col gap-3 rounded-[24px] p-5">
+          <span className="eyebrow text-teal">{SCHED.restDayBuff.name}</span>
+          <span className="text-[13px] text-ink3">{SCHED.restDayBuff.rule}</span>
+          {SCHED.restDayBuff.checklist.map((c: string, i: number) => (
+            <div key={i} className={`flex items-center gap-3 ${buff[i] ? "is-done" : ""}`}>
+              <Tick
+                on={!!buff[i]}
+                onClick={() => setStore((s: any) => ({ ...s, recoveryBuff: { ...s.recoveryBuff, [buffKey]: { ...(s.recoveryBuff[buffKey] || {}), [i]: !(s.recoveryBuff[buffKey] || {})[i] } } }))}
+                label={c}
+              />
+              <span className="ttl text-[13.5px]">{c}</span>
+            </div>
+          ))}
+          <button
+            type="button"
+            disabled={!allBuff || buffLogged}
+            onClick={() => setStore((s: any) => ({ ...s, calendarLog: { ...s.calendarLog, [today()]: { ...(s.calendarLog[today()] || {}), recoveryBuff: true } } }))}
+            className="btn btn-pri mt-1 w-fit disabled:opacity-40"
+          >
+            {buffLogged ? "Recovery day logged" : "Log recovery day"}
+          </button>
+          <details className="mt-1 border-t border-[var(--glass-line)] pt-3">
+            <summary className="cursor-pointer text-[13px] font-medium text-ink2">Collision &amp; load rules</summary>
+            <ul className="mt-2 flex list-disc flex-col gap-1.5 pl-5 text-[13px] text-ink3">
+              {SCHED.rules.map((r: string, i: number) => (
+                <li key={i}>{r}</li>
+              ))}
+            </ul>
+          </details>
+        </section>
       </div>
     </div>
   );
 }
 
-/* ============================== log session modal ============================== */
-// Not every skill is practiced daily (piano is, marathon isn't) -- so this
-// isn't a blanket daily nudge. It only shows up when you open it, and what it
-// shows is the CURRENT PHASE's real predefined protocol (the same items the
-// Protocol/Drills tab lists for this phase), as a checklist you tick and
-// submit. The result -- which items you actually did -- is what lands in
-// logs[skill] and lights up today's cell on the calendar.
-function LogSessionModal({ skill, phase, store, onClose, setStore }: any) {
+/* ---------------------------------------------------------- log modal */
+function LogModal({ skill, phase, store, setStore, onClose }: { skill: SkillId; phase: any; store: any; setStore: any; onClose: () => void }) {
   const items: any[] = phase.dailyPractice || [];
   const [checked, setChecked] = useState<Record<number, boolean>>({});
   const [notes, setNotes] = useState("");
-  function toggle(i: number) { setChecked((c) => ({ ...c, [i]: !c[i] })); }
-  const doneCount = Object.keys(checked).filter((k) => checked[Number(k)]).length;
-
+  const done = items.filter((_, i) => checked[i]).length;
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", k);
+    return () => window.removeEventListener("keydown", k);
+  }, [onClose]);
   function submit() {
-    // Guard against the accidental double-log -- warn instead of silently
-    // blocking, since a genuine second session the same day is legitimate.
-    const alreadyLoggedToday = (store.logs[skill] || []).some((l: any) => l.date === today() && l.phaseId === phase.id);
-    if (alreadyLoggedToday) {
-      const proceed = window.confirm(
-        "You've already logged a " + SKILL_META[skill].short + " session today in this phase. Log this as an additional session?"
-      );
-      if (!proceed) return;
-    }
-    const protocolItems = items.map((it: any, i: number) => ({
-      label: it.label,
-      detail: it.task || it.prescription || "",
-      done: !!checked[i]
+    if ((store.logs[skill] || []).some((l: any) => l.date === today() && l.phaseId === phase.id) && !window.confirm(`You've already logged ${META[skill].name} today in this phase. Log another session?`)) return;
+    const protocolItems = items.map((it, i) => ({ label: it.label, detail: it.task || it.prescription || "", done: !!checked[i] }));
+    setStore((s: any) => ({
+      ...s,
+      logs: { ...s.logs, [skill]: [...(s.logs[skill] || []), { date: today(), phaseId: phase.id, protocolItems, notes }] },
+      calendarLog: { ...s.calendarLog, [today()]: { ...(s.calendarLog[today()] || {}), [skill]: true } }
     }));
-    setStore((s: any) => {
-      const entry = { date: today(), phaseId: phase.id, protocolItems, notes };
-      return {
-        ...s,
-        logs: { ...s.logs, [skill]: [...(s.logs[skill] || []), entry] },
-        calendarLog: { ...s.calendarLog, [today()]: { ...(s.calendarLog[today()] || {}), [skill]: true } }
-      };
-    });
     onClose();
   }
-
   return (
-    <div className={cx("modal-overlay")} onClick={onClose}>
-      <div className={cx("modal")} onClick={(e) => e.stopPropagation()}>
-        <span className={cx("eyebrow")}>LOG TODAY'S SESSION · {SKILL_META[skill].short} · {phase.title}</span>
-        <h3 style={{ margin: 0 }}>Today's predefined protocol</h3>
-        {items.length === 0 ? (
-          <p style={{ fontSize: 13, color: "var(--ink-dim)", margin: 0 }}>
-            No predefined protocol items are defined for this phase yet — log a note below instead.
-          </p>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            {items.map((it: any, i: number) => (
-              <label key={i} className={cx("drill-row")} style={{ cursor: "pointer", gridTemplateColumns: "20px 1fr", padding: "9px 0" }}>
-                <input type="checkbox" className={cx("chk")} checked={!!checked[i]} onChange={() => toggle(i)} />
-                <div>
-                  <b style={{ fontSize: 13.5, textDecoration: checked[i] ? "line-through" : "none", color: checked[i] ? "var(--ink-faint)" : "var(--ink)" }}>
-                    {it.label}
-                  </b>
-                  <p style={{ margin: "3px 0 0", fontSize: 12.5, color: "var(--ink-dim)" }}>
-                    {it.task}{it.prescription ? " — " + it.prescription : ""}
-                  </p>
-                </div>
-              </label>
-            ))}
-            <span className={cx("mono")} style={{ fontSize: 11, color: "var(--ink-dim)", marginTop: 6 }}>{doneCount} / {items.length} done today</span>
-          </div>
-        )}
-        <div className={cx("field")}>
-          <label>NOTES (OPTIONAL)</label>
-          <textarea rows={3} placeholder="Anything worth remembering — breakthroughs, tension, numbers..." value={notes} onChange={(e) => setNotes(e.target.value)} />
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 px-4 pt-[10vh] backdrop-blur-md" onClick={onClose}>
+      <div role="dialog" aria-label="Log today's session" className="rise glass flex max-h-[80vh] w-full max-w-[600px] flex-col gap-4 overflow-y-auto rounded-[24px] p-5" style={{ background: "rgba(14,16,19,0.94)" }} onClick={(e) => e.stopPropagation()}>
+        <div className="flex flex-col gap-1">
+          <span className="eyebrow">Log today · {META[skill].name}</span>
+          <span className="text-[22px] font-light tracking-[-0.02em]">{phase.title}</span>
         </div>
-        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-          <button className={cx("topbtn", "ghost")} onClick={onClose}>CANCEL</button>
-          <button className={cx("topbtn", "primary")} onClick={submit}>CONFIRM LOG</button>
+        {items.length === 0 && <span className="text-[13px] text-ink3">No protocol items for this phase — add a note instead.</span>}
+        <div className="flex flex-col">
+          {items.map((it, i) => (
+            <div key={i} className={`flex items-start gap-3 border-b border-[var(--glass-line)] py-2.5 last:border-0 ${checked[i] ? "is-done" : ""}`}>
+              <Tick on={!!checked[i]} onClick={() => setChecked((c) => ({ ...c, [i]: !c[i] }))} label={it.label} />
+              <span className="flex flex-col">
+                <span className="ttl text-[13.5px] font-medium">{it.label}</span>
+                <span className="text-[12.5px] text-ink3">
+                  {it.task}
+                  {it.prescription ? ` — ${it.prescription}` : ""}
+                </span>
+              </span>
+            </div>
+          ))}
+        </div>
+        {items.length > 0 && (
+          <span className="font-mono text-[11.5px] text-ink3">
+            {done} / {items.length} done
+          </span>
+        )}
+        <textarea rows={3} aria-label="Session notes" className="field resize-none" placeholder="Numbers worth keeping — hold time, reps, pace, how it felt…" value={notes} onChange={(e) => setNotes(e.target.value)} />
+        <div className="flex justify-end gap-2">
+          <button type="button" className="btn" onClick={onClose}>
+            Cancel
+          </button>
+          <button type="button" className="btn btn-pri" onClick={submit}>
+            Log session
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-/* ============================== streak calc ============================== */
-function computeStreak(calendarLog: any): number {
-  let streak = 0;
-  let d = new Date();
-  for (let i = 0; i < 365; i++) {
-    const ds = d.toISOString().slice(0, 10);
-    const entry = calendarLog[ds];
-    const dow = d.getDay();
-    const ok = entry && (entry.piano || entry.handstand || entry.dragonflag || entry.marathon || entry.recoveryBuff);
-    if (ok) { streak++; }
-    else if (dow === 0 && !entry) { if (ds !== today()) break; }
-    else { break; }
-    d.setDate(d.getDate() - 1);
-  }
-  return streak;
-}
-
-/* ============================== App ============================== */
+/* ---------------------------------------------------------------- app */
 export default function MasteryOS({ initialStore }: { initialStore?: any }) {
-  // Lazy initializer -- runs exactly once, on first mount, using whatever the
-  // server handed down. Deliberately NOT a useEffect keyed on `initialStore`:
-  // that pattern re-ran every time the prop reference changed (which happens
-  // whenever Next.js refreshes this route's server component) and stomped
-  // local clicks -- switch phase/skill, see it snap back to the old one for
-  // a moment, click again and it "sticks". A lazy useState init ignores
-  // later prop changes entirely, so the server value only ever seeds the
-  // store once; after that the client store is the single source of truth
-  // and every change is pushed out to Supabase, never pulled back in.
-  const [store, setStoreRaw] = useState<any>(() => ({ ...defaultStore(), ...(initialStore || {}) }));
-  const [modalOpen, setModalOpen] = useState(false);
-  const setStore = useCallback((fn: any) => setStoreRaw((prev: any) => (typeof fn === "function" ? fn(prev) : fn)), []);
-
-  // Debounced save back to Supabase on every change, so progress follows you
-  // across devices instead of staying stuck in one browser's localStorage.
-  // Skips the very first render (that's just the data we loaded, re-saving
-  // it immediately is pointless).
-  const saveTimeout = useRef<any>(null);
+  // Seed once from the server; after that the client store is the source of
+  // truth and every change is pushed (debounced) to Supabase.
+  const [store, setRaw] = useState<any>(() => ({ ...defaultStore(), ...(initialStore || {}) }));
+  const [logOpen, setLogOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const setStore = useCallback((fn: any) => setRaw((p: any) => (typeof fn === "function" ? fn(p) : fn)), []);
+  const saveT = useRef<any>(null);
   const mounted = useRef(false);
   useEffect(() => {
-    if (!mounted.current) { mounted.current = true; return; }
-    if (saveTimeout.current) clearTimeout(saveTimeout.current);
-    saveTimeout.current = setTimeout(() => { saveMasteryState(store).catch(() => {}); }, 800);
-    return () => { if (saveTimeout.current) clearTimeout(saveTimeout.current); };
+    if (!mounted.current) {
+      mounted.current = true;
+      return;
+    }
+    clearTimeout(saveT.current);
+    saveT.current = setTimeout(() => {
+      saveMasteryState(store).catch(() => {});
+    }, 800);
+    return () => clearTimeout(saveT.current);
   }, [store]);
 
-  const activeSkill = store.activeSkill;
-  const activePhaseId = store.activePhase[activeSkill];
-  const phase = getPhase(activeSkill, activePhaseId);
-  const Telemetry = TELEMETRY[activeSkill];
-  const load = todayLoad();
+  const isWeek = store.activeTab === "schedule";
+  const skill: SkillId = (store.activeSkill as SkillId) || "piano";
+  const phases = getPhases(skill);
+  const phase = getPhase(skill, store.activePhase[skill]);
+  const phaseIdx = Math.max(0, phases.findIndex((p: any) => p.id === phase.id));
+  const gate = gateCriteriaOf(skill, phase);
+  const gateDone = gate.filter((_, i) => store.gateChecks[`${skill}-${phase.id}-gate-${i}`]).length;
   const streak = computeStreak(store.calendarLog);
+  const load = todayLoad();
+  const loggedToday = (s: SkillId) => !!store.calendarLog[today()]?.[s];
+  const statusKey = `${skill}-${today()}`;
+  const status: string = store.tissueStatus[statusKey] || "green";
+  const Tool = TOOLS[skill];
 
-  function selectSkill(s: string) { setStore((prev: any) => ({ ...prev, activeSkill: s, activeTab: "workspace" })); }
-  function selectPhase(id: string) { setStore((prev: any) => ({ ...prev, activePhase: { ...prev.activePhase, [activeSkill]: id } })); }
+  const setStatus = (v: string) => setStore((s: any) => ({ ...s, tissueStatus: { ...s.tissueStatus, [statusKey]: v } }));
+  const selectSkill = (id: SkillId) => {
+    setToolsOpen(false);
+    setStore((p: any) => ({ ...p, activeSkill: id, activeTab: "workspace" }));
+  };
 
   function exportData() {
-    const text = JSON.stringify(store, null, 2);
-    const blob = new Blob([text], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
+    const url = URL.createObjectURL(new Blob([JSON.stringify(store, null, 2)], { type: "application/json" }));
     const a = document.createElement("a");
-    a.href = url; a.download = "life-mastery-os-backup.json"; a.click();
+    a.href = url;
+    a.download = "life-mastery-backup.json";
+    a.click();
     URL.revokeObjectURL(url);
   }
-  function importData(e: any) {
-    const file = e.target.files[0]; if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      try { const parsed = JSON.parse(String(reader.result)); setStore(parsed); } catch (err) { alert("Invalid backup file"); }
+  function importData(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        setStore(JSON.parse(String(r.result)));
+      } catch (err) {
+        alert("That file isn't a valid backup.");
+      }
     };
-    reader.readAsText(file);
+    r.readAsText(f);
   }
 
+  const statusCopy: Record<string, string> = {
+    green: "Clear — train as prescribed.",
+    amber: phase.guardrails?.stopRule?.amber || "Something's niggling — downgrade today's load.",
+    red: phase.guardrails?.stopRule?.red || "Stop. Recovery only today."
+  };
+
   return (
-    <div className={cx(inter.className, jetbrainsMono.variable, "app")} style={{ fontFamily: inter.style.fontFamily }}>
-        <div className={cx("topbar")}>
-          <TransitionLink href="/today" className={cx("topbtn", "ghost")} style={{ textDecoration: "none", display: "inline-flex", alignItems: "center" }}>
-            ← COMMAND CENTER
-          </TransitionLink>
-          <span className={cx("brand")}>LIFE <span>// MASTERY OS</span></span>
-          <Badge>{streak}-DAY STREAK</Badge>
-          <Badge cls={load}>TODAY · {load.toUpperCase()} LOAD</Badge>
-          <div className={cx("cartridges")}>
-            {Object.keys(SKILL_META).map((s) => (
-              <button key={s} className={cx("cart-btn", store.activeTab === "workspace" && activeSkill === s && "on")} style={{ "--active-color": SKILL_META[s].color } as any} onClick={() => selectSkill(s)}>{SKILL_META[s].label}</button>
-            ))}
-            <button className={cx("cart-btn", store.activeTab === "schedule" && "on")} onClick={() => setStore((prev: any) => ({ ...prev, activeTab: "schedule" }))}>SCHEDULE &amp; ANALYTICS</button>
-          </div>
-          <button className={cx("topbtn", "primary")} onClick={() => setModalOpen(true)}>+ LOG TODAY'S SESSION</button>
-          <button className={cx("topbtn", "ghost")} onClick={exportData}>EXPORT</button>
-          <label className={cx("topbtn", "ghost")} style={{ margin: 0 }}>
-            IMPORT
-            <input type="file" accept="application/json" onChange={importData} style={{ display: "none" }} />
-          </label>
+    <div className="rise flex flex-col gap-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="flex flex-col gap-1.5">
+          <span className="eyebrow">Life · Mastery</span>
+          <h1 className="text-[clamp(30px,3.8vw,52px)] font-light leading-none tracking-[-0.03em]">Four crafts, one practice.</h1>
         </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="glass rounded-full px-3.5 py-2 font-mono text-[12px] text-[#e9d9c3]">{streak}-day practice streak</span>
+          <span className={`glass rounded-full px-3.5 py-2 font-mono text-[12px] uppercase ${load === "high" ? "text-red" : load === "low" || load === "rest" ? "text-teal" : "text-amber"}`}>
+            Today · {load} load
+          </span>
+          <details className="relative">
+            <summary className="btn btn-sm list-none" aria-label="Backup">
+              Backup
+            </summary>
+            <div className="glass absolute right-0 top-10 z-20 flex flex-col gap-1.5 rounded-[16px] p-2" style={{ background: "rgba(14,16,19,0.94)" }}>
+              <button type="button" className="btn btn-sm justify-start" onClick={exportData}>
+                Export JSON
+              </button>
+              <label className="btn btn-sm cursor-pointer justify-start">
+                Import JSON
+                <input type="file" accept="application/json" onChange={importData} className="hidden" />
+              </label>
+            </div>
+          </details>
+        </div>
+      </div>
 
-        <main className={cx("workspace")}>
-          {store.activeTab === "workspace" ? (
-            <>
-              <Telemetry store={store} setStore={setStore} />
-              <PhaseTimeline skill={activeSkill} activeId={activePhaseId} onSelect={selectPhase} store={store} />
-              <PhaseDossier skill={activeSkill} phase={phase} store={store} setStore={setStore} />
-            </>
-          ) : (
-            <WeeklyScheduleView store={store} setStore={setStore} />
-          )}
-        </main>
+      {/* Skill rail */}
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3">
+        {SKILLS.map((s) => {
+          const ph = getPhases(s.id);
+          const cur = getPhase(s.id, store.activePhase[s.id]);
+          const i = Math.max(0, ph.findIndex((p: any) => p.id === cur.id));
+          const on = !isWeek && skill === s.id;
+          return (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => selectSkill(s.id)}
+              className="glass col-card flex items-center gap-3.5 rounded-[22px] p-4 text-left"
+              style={on ? { borderColor: s.tint, background: "rgba(220,232,239,0.06)" } : undefined}
+              aria-pressed={on}
+            >
+              <Ring p={(i + 0.5) / Math.max(1, ph.length)} stroke={s.tint} text={s.n} />
+              <span className="flex min-w-0 flex-col">
+                <span className="text-[15px] font-semibold">{s.name}</span>
+                <span className="text-[12px] text-ink3">
+                  Phase {i + 1} of {ph.length}
+                </span>
+                <span className={`font-mono text-[10.5px] ${loggedToday(s.id) ? "text-teal" : "text-ink3"}`}>{loggedToday(s.id) ? "● logged today" : "○ not yet today"}</span>
+              </span>
+            </button>
+          );
+        })}
+        <button
+          type="button"
+          onClick={() => setStore((p: any) => ({ ...p, activeTab: "schedule" }))}
+          className="glass col-card flex items-center gap-3.5 rounded-[22px] p-4 text-left"
+          style={isWeek ? { borderColor: "#dce8ef", background: "rgba(220,232,239,0.06)" } : undefined}
+          aria-pressed={isWeek}
+        >
+          <span className="flex h-[52px] w-[52px] flex-none items-center justify-center rounded-full border border-[var(--glass-line2)] font-mono text-[12px] text-ink2">7d</span>
+          <span className="flex flex-col">
+            <span className="text-[15px] font-semibold">The week</span>
+            <span className="text-[12px] text-ink3">Schedule, recovery, calendar</span>
+          </span>
+        </button>
+      </div>
 
-        {modalOpen && <LogSessionModal skill={activeSkill} phase={phase} store={store} onClose={() => setModalOpen(false)} setStore={setStore} />}
+      {isWeek ? (
+        <WeekView store={store} setStore={setStore} />
+      ) : (
+        <div className="flex flex-wrap items-start gap-4">
+          <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-4">
+            {/* Phase stepper */}
+            <section className="glass flex flex-col gap-4 rounded-[26px] p-6">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <div className="flex flex-col gap-1">
+                  <span className="eyebrow">
+                    {META[skill].name} · {phase.weeks || phase.weeksLabel} · {phase.durationWeeks} weeks
+                  </span>
+                  <h2 className="text-[clamp(24px,2.4vw,32px)] font-light leading-tight tracking-[-0.02em]">{phase.title}</h2>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+                {phases.map((p: any, i: number) => {
+                  const g = gateCriteriaOf(skill, p);
+                  const cleared = g.length > 0 && g.every((_, gi) => store.gateChecks[`${skill}-${p.id}-gate-${gi}`]);
+                  const on = p.id === phase.id;
+                  return (
+                    <div key={p.id} className="flex flex-none items-center gap-1.5">
+                      <button
+                        type="button"
+                        title={p.title}
+                        aria-label={`Phase ${i + 1}: ${p.title}`}
+                        aria-current={on}
+                        onClick={() => setStore((s: any) => ({ ...s, activePhase: { ...s.activePhase, [skill]: p.id } }))}
+                        className="flex h-9 min-w-9 items-center justify-center rounded-full border px-3 font-mono text-[12px] transition-all"
+                        style={
+                          on
+                            ? { background: META[skill].tint, borderColor: META[skill].tint, color: "#07080a", boxShadow: `0 0 18px ${META[skill].tint}66` }
+                            : cleared
+                            ? { borderColor: "rgba(220,232,239,0.4)", color: "#dce8ef", background: "rgba(220,232,239,0.08)" }
+                            : { borderColor: "rgba(255,255,255,0.14)", color: "#9aa3ab" }
+                        }
+                      >
+                        {cleared && !on ? "✓" : `P${i + 1}`}
+                      </button>
+                      {i < phases.length - 1 && <span className="h-px w-6 bg-white/15" />}
+                    </div>
+                  );
+                })}
+                <span className="ml-auto pl-3 font-mono text-[12px] text-ink3">
+                  {phaseIdx + 1}/{phases.length}
+                </span>
+              </div>
+            </section>
+            <Dossier skill={skill} phase={phase} store={store} setStore={setStore} />
+          </div>
+
+          {/* Today rail */}
+          <aside className="flex min-w-0 flex-[1_1_300px] flex-col gap-4">
+            <section className="glass flex flex-col gap-4 rounded-[26px] p-5" style={{ background: "linear-gradient(170deg, rgba(207,224,234,0.08), rgba(18,20,24,0.6))", borderColor: "rgba(220,232,239,0.22)" }}>
+              <div className="flex items-center gap-3.5">
+                <Ring p={gate.length ? gateDone / gate.length : 0} size={60} stroke={META[skill].tint} text={`${gateDone}/${gate.length}`} />
+                <span className="flex flex-col">
+                  <span className="eyebrow">Phase gate</span>
+                  <span className="text-[13px] text-ink2">{gate.length - gateDone ? `${gate.length - gateDone} criteria to unlock the next phase` : "Cleared"}</span>
+                </span>
+              </div>
+              <button type="button" className="btn btn-pri h-11 justify-center" onClick={() => setLogOpen(true)}>
+                {loggedToday(skill) ? "Log another session" : "+ Log today’s session"}
+              </button>
+            </section>
+
+            {META[skill].body && (
+              <section className="glass flex flex-col gap-3 rounded-[26px] p-5">
+                <span className="eyebrow">Body check · {META[skill].body}</span>
+                <div className="flex gap-1.5">
+                  {[
+                    ["green", "Green", "rgba(157,211,200"],
+                    ["amber", "Amber", "rgba(233,195,138"],
+                    ["red", "Red", "rgba(255,140,143"]
+                  ].map(([k, l, c]) => (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() => setStatus(k)}
+                      aria-pressed={status === k}
+                      className="h-9 flex-1 rounded-full border text-[12.5px] font-medium transition-all"
+                      style={status === k ? { borderColor: `${c},0.8)`, background: `${c},0.14)`, color: `${c},1)` } : { borderColor: "rgba(255,255,255,0.12)", color: "#9aa3ab" }}
+                    >
+                      {l}
+                    </button>
+                  ))}
+                </div>
+                <span className={`text-[13px] leading-snug ${status === "red" ? "text-red" : status === "amber" ? "text-amber" : "text-ink2"}`}>{statusCopy[status]}</span>
+              </section>
+            )}
+
+            <section className="glass flex flex-col gap-3 rounded-[26px] p-5">
+              <button type="button" onClick={() => setToolsOpen(!toolsOpen)} className="flex items-center justify-between text-left" aria-expanded={toolsOpen}>
+                <span className="eyebrow">Practice tool · {Tool.label}</span>
+                <span className="font-mono text-[12px] text-ink3">{toolsOpen ? "hide" : "open"}</span>
+              </button>
+              {toolsOpen && (
+                <div className="rise">
+                  <Tool.El />
+                </div>
+              )}
+            </section>
+          </aside>
+        </div>
+      )}
+
+      {logOpen && <LogModal skill={skill} phase={phase} store={store} setStore={setStore} onClose={() => setLogOpen(false)} />}
     </div>
   );
 }

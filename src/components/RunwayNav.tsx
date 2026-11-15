@@ -28,6 +28,7 @@ export default function RunwayNav({
   projects: { id: string; name: string }[];
 }) {
   const pathname = usePathname() || "";
+  const isLife = pathname.startsWith("/mastery");
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<CaptureTab>("task");
   const close = useCallback(() => setOpen(false), []);
@@ -60,11 +61,22 @@ export default function RunwayNav({
             <span className="h-7 w-7 rounded-full bg-[#0c0d10]" />
           </Link>
           <div className="flex gap-0.5 rounded-full border border-[var(--glass-line)] p-0.5">
-            <span className="seg seg-on inline-flex items-center">Work</span>
-            <TransitionLink href="/mastery" className="seg inline-flex items-center">
-              Life
-            </TransitionLink>
+            {isLife ? (
+              <TransitionLink href="/today" className="seg inline-flex items-center">
+                Work
+              </TransitionLink>
+            ) : (
+              <span className="seg seg-on inline-flex items-center">Work</span>
+            )}
+            {isLife ? (
+              <span className="seg seg-on inline-flex items-center">Life</span>
+            ) : (
+              <TransitionLink href="/mastery" className="seg inline-flex items-center">
+                Life
+              </TransitionLink>
+            )}
           </div>
+          {!isLife && (
           <nav aria-label="Primary" className="flex flex-wrap gap-0.5">
             {NAV.map((n) => {
               const on = n.match.some((m) => pathname.startsWith(m));
@@ -75,6 +87,7 @@ export default function RunwayNav({
               );
             })}
           </nav>
+          )}
           <button
             type="button"
             onClick={() => {
