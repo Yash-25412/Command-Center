@@ -3,72 +3,41 @@
 @tailwind utilities;
 
 /*
-  Theme pixel-matched to the reference UI across all three states: light,
-  dark and the login screen. Shared identity: warm paper in light mode vs.
-  deep teal-black in dark, a rust/amber accent, serif display headings.
-  Primary buttons flip ink: near-black teal on light backgrounds, amber on
-  dark ones — same pattern the reference uses.
+  Runway theme (Command Center v2). One deliberate look: obsidian ground,
+  pearl/moonstone accent, frosted glass panels, scarlet reserved for carried
+  (overdue) items. Every existing .card/.chip/.btn/.field reads these vars,
+  so older screens pick the look up without rewrites.
 */
 :root {
-  --bg: #f5f2ef;
-  --surface: #ffffff;
-  --sunk: #ebe8e5;
-  --hover: #ecece7;
-  --line: #e1dfdc;
-  --line2: #d0cecb;
-  --ink: #1b1b1b;
-  --ink2: #6b7178;
-  --ink3: #8c9197;
-  --accent: #10262a;
-  --accent-bg: #e3e2df;
-  --on-accent: #ffffff;
-  --green: #2d7a5f;
-  --green-bg: #d9e1db;
-  --amber: #b58863;
-  --amber-bg: #ebe1d9;
-  --red: #b2503e;
-  --red-bg: #ecdbd6;
-  --teal: #2e7873;
-  --teal-bg: #d9e1de;
-  --gray: #6b7178;
-  --gray-bg: #e7e5e3;
-  --card-shadow: 0 1px 2px rgba(27, 27, 27, 0.04), 0 3px 10px rgba(27, 27, 27, 0.04);
-  --btn-pri-shadow: 0 2px 8px rgba(16, 38, 42, 0.18);
-}
-
-.dark {
-  /*
-    Colors lifted directly from the reference screenshot (PW Incentive
-    Portal, dark mode) via pixel sampling, not just "inspired by" —
-    deep teal-black background (#10262a, pixel-matched), warm off-white
-    headings, warm-gray (not teal-gray) body text, amber as the primary
-    accent. Verified contrast: bg/ink ~13.4:1, bg/ink2 ~6:1, bg/amber
-    ~7.7:1, surface/ink2 ~5.7:1 — matching the reference's own ratios.
-  */
-  --bg: #10262a;
-  --surface: #132b2f;
-  --sunk: #0b1b1d;
-  --hover: #1b3034;
-  --line: #23373b;
-  --line2: #314448;
-  --ink: #f0ece8;
-  --ink2: #a79e9c;
-  --ink3: #6e7a7d;
-  --accent: #dcae62;
-  --accent-bg: #313c33;
-  --on-accent: #1c150a;
-  --green: #5cb88a;
-  --green-bg: #1c3d39;
-  --amber: #dcae62;
-  --amber-bg: #313c33;
-  --red: #d98c7c;
-  --red-bg: #303637;
-  --teal: #6fb3b8;
-  --teal-bg: #1f3d41;
-  --gray: #6e7a7d;
-  --gray-bg: #1d3236;
+  --bg: #07080a;
+  --surface: #121418;
+  --sunk: #0b0c0f;
+  --hover: #16191d;
+  --line: #1e2126;
+  --line2: #2d3137;
+  --ink: #e9ecef;
+  --ink2: #aeb5bc;
+  --ink3: #9aa3ab;
+  --accent: #dce8ef;
+  --accent-bg: #192026;
+  --on-accent: #07080a;
+  --green: #9dd3c8;
+  --green-bg: #12231f;
+  --amber: #e9c38a;
+  --amber-bg: #262016;
+  --red: #ff8c8f;
+  --red-bg: #2a1416;
+  --teal: #9dd3c8;
+  --teal-bg: #12231f;
+  --gray: #9aa3ab;
+  --gray-bg: #171a1e;
   --card-shadow: none;
-  --btn-pri-shadow: none;
+  --btn-pri-shadow: 0 0 22px -6px rgba(220, 232, 239, 0.45);
+  --glass: rgba(18, 20, 24, 0.55);
+  --glass-line: rgba(255, 255, 255, 0.08);
+  --glass-line2: rgba(255, 255, 255, 0.18);
+  --red-glow: rgba(255, 90, 95, 0.45);
+  color-scheme: dark;
 }
 
 /*
@@ -147,8 +116,9 @@ body {
      without new variables — this is what gives the translucent .card and
      sidebar surfaces something to actually blur, instead of looking flat. */
   background:
-    radial-gradient(1200px 600px at 12% -10%, color-mix(in oklch, var(--accent) 16%, transparent), transparent 60%),
-    radial-gradient(900px 520px at 100% 0%, color-mix(in oklch, var(--teal) 13%, transparent), transparent 55%),
+    radial-gradient(900px 640px at 42% 8%, rgba(170, 200, 220, 0.11), transparent 62%),
+    radial-gradient(760px 560px at -6% -12%, rgba(255, 90, 95, 0.07), transparent 60%),
+    radial-gradient(900px 700px at 105% 110%, rgba(233, 217, 195, 0.06), transparent 60%),
     var(--bg);
   background-attachment: fixed;
   color: var(--ink);
@@ -166,6 +136,8 @@ body {
   collapse). Tailwind's layer system reorders "components" before "utilities"
   regardless of source position, so a utility class always wins as expected.
 */
+h1.font-serif, h2.font-serif, .font-serif.text-\[34px\] { font-weight: 300; letter-spacing: -0.03em; }
+
 @layer components {
 
 .chip {
@@ -190,9 +162,9 @@ body {
 .chip-gray { background: var(--gray-bg); color: var(--gray); }
 
 .card {
-  background: color-mix(in oklch, var(--surface) 74%, transparent);
-  border: 1px solid var(--line);
-  border-radius: 16px;
+  background: var(--glass);
+  border: 1px solid var(--glass-line);
+  border-radius: 22px;
   box-shadow: var(--card-shadow);
   backdrop-filter: blur(22px) saturate(180%);
   -webkit-backdrop-filter: blur(22px) saturate(180%);
@@ -215,9 +187,9 @@ body {
 
 .field {
   width: 100%;
-  border: 1px solid var(--line2);
-  background: var(--surface);
-  border-radius: 10px;
+  border: 1px solid var(--glass-line2);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
   padding: 10px 12px;
   outline: none;
   color: var(--ink);
@@ -234,11 +206,11 @@ body {
 }
 
 .btn {
-  height: 34px;
-  padding: 0 14px;
-  border-radius: 12px;
-  border: 1px solid var(--line2);
-  background: var(--surface);
+  height: 36px;
+  padding: 0 15px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-line2);
+  background: transparent;
   font-weight: 500;
   display: inline-flex;
   align-items: center;
@@ -250,13 +222,13 @@ body {
 .btn:hover { background: var(--hover); }
 .btn:active { transform: scale(0.97); }
 .btn-pri {
-  background: var(--accent);
+  background: linear-gradient(135deg, #f4f7f9, #c9dae4);
   color: var(--on-accent);
   border-color: transparent;
   box-shadow: var(--btn-pri-shadow);
 }
 .btn-pri:hover { filter: brightness(1.08); }
-.btn-sm { height: 28px; padding: 0 10px; font-size: 13px; }
+.btn-sm { height: 30px; padding: 0 12px; font-size: 12.5px; }
 
 .avatar {
   display: inline-flex;
@@ -278,6 +250,84 @@ body {
   transform: translateY(-1px);
 }
 
+
+/* ---- Runway pieces ---- */
+.glass {
+  background: var(--glass);
+  border: 1px solid var(--glass-line);
+  backdrop-filter: blur(28px) saturate(150%);
+  -webkit-backdrop-filter: blur(28px) saturate(150%);
+}
+.eyebrow {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink3);
+}
+.chk {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-line2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--on-accent);
+  transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.chk:hover { border-color: var(--accent); transform: scale(1.08); }
+.chk-on {
+  background: linear-gradient(135deg, #f4f7f9, #bfd3df);
+  border-color: transparent;
+  box-shadow: 0 0 18px rgba(220, 232, 239, 0.45);
+}
+.chk-late { border-color: rgba(255, 90, 95, 0.8); animation: cc-ring 2.6s ease-in-out infinite; }
+.carried {
+  border-color: rgba(255, 90, 95, 0.42) !important;
+  background: linear-gradient(160deg, rgba(255, 90, 95, 0.13), rgba(255, 90, 95, 0.03)) !important;
+  animation: cc-beat 2.6s ease-in-out infinite;
+}
+.is-done { opacity: 0.42; }
+.is-done .ttl { text-decoration: line-through; }
+.carried.is-done { animation: none; border-color: rgba(220, 232, 239, 0.3) !important; background: rgba(220, 232, 239, 0.05) !important; }
+.seg {
+  height: 36px;
+  padding: 0 15px;
+  border-radius: 999px;
+  font-weight: 500;
+  color: var(--ink2);
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+.seg:hover { color: #fff; }
+.seg-on { background: linear-gradient(135deg, #f4f7f9, #c9dae4); color: #07080a !important; }
+.pill {
+  height: 32px;
+  padding: 0 13px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-line2);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ink2);
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+.pill:hover { color: var(--ink); border-color: rgba(220, 232, 239, 0.4); }
+.pill-on { background: var(--accent); border-color: var(--accent); color: var(--on-accent) !important; }
+.col-card { transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.3s; }
+.col-card:hover { transform: translateY(-2px); border-color: rgba(220, 232, 239, 0.3); }
+.runway { scroll-snap-type: x mandatory; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent; }
+.runway > * { scroll-snap-align: start; }
+@keyframes cc-beat { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 90, 95, 0); } 50% { box-shadow: 0 0 26px -4px var(--red-glow); } }
+@keyframes cc-ring { 0%, 100% { box-shadow: 0 0 0 0 transparent; } 50% { box-shadow: 0 0 0 4px rgba(255, 90, 95, 0.18); } }
+@keyframes cc-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.rise { animation: cc-rise 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .carried, .chk-late, .rise { animation: none !important; }
+}
+
 /* Kanban drag-and-drop (board view) */
 .kanban-card {
   cursor: grab;
@@ -290,8 +340,8 @@ body {
 }
 .kanban-column-over {
   background: var(--accent-bg);
-  border-radius: 14px;
-  outline: 2px dashed var(--accent);
+  border-radius: 18px;
+  outline: 1px dashed var(--accent);
   outline-offset: -2px;
 }
 

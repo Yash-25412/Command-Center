@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { loadProjectDetail } from "@/lib/projects";
+import { loadAdhoc, loadProjectDetail } from "@/lib/projects";
 import { addMilestone, toggleMilestone } from "@/app/actions/projects";
 import ProjectFieldText from "@/components/ProjectFieldText";
 import { fmtDate, fmtDateWeekday, initials } from "@/lib/format";
@@ -9,7 +9,52 @@ export const dynamic = "force-dynamic";
 
 const HEALTH_CLS: Record<string, string> = { green: "chip-green", amber: "chip-amber", red: "chip-red" };
 
+async function AdhocPage() {
+  const a = await loadAdhoc();
+  const groups = [
+    { label: "Open", items: a.open },
+    { label: "Done", items: a.done }
+  ];
+  return (
+    <div className="rise flex flex-col gap-6">
+      <Link href="/projects" className="inline-flex w-fit items-center gap-1.5 font-medium text-ink2">
+        ← Projects
+      </Link>
+      <div className="flex flex-col gap-2">
+        <span className="eyebrow">Project · Ad Hoc</span>
+        <h1 className="text-[clamp(30px,3.6vw,46px)] font-light leading-none tracking-[-0.03em]">Ad Hoc</h1>
+        <p className="max-w-[680px] text-ink2">
+          The default home for any task without a project. Open a task and pick a project to move it out — or just get it done here.
+        </p>
+      </div>
+      {groups.map((g) => (
+        <section key={g.label} className="flex flex-col gap-2">
+          <span className="eyebrow">
+            {g.label} · {g.items.length}
+          </span>
+          <div className="card overflow-hidden">
+            {g.items.map((t) => (
+              <Link key={t.id} href={`/task/${t.id}`} className="row-hover flex items-center gap-3 border-t border-line px-4 py-3 first:border-t-0">
+                <div className="min-w-0 flex-1">
+                  <div className="truncate font-medium">{t.title}</div>
+                  <div className="truncate text-[13px] text-ink3">
+                    {t.assignees.length ? t.assignees.map((p) => (p.is_me ? "Me" : p.name)).join(", ") : "Unassigned"}
+                    {t.next_action ? ` · ${t.next_action}` : ""}
+                  </div>
+                </div>
+                <span className={`chip ${t.due.cls}`}>{t.due.label}</span>
+              </Link>
+            ))}
+            {g.items.length === 0 && <div className="p-5 text-ink3">Nothing here.</div>}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
+
 export default async function ProjectDetailPage({ params }: { params: { id: string } }) {
+  if (params.id === "adhoc") return <AdhocPage />;
   const data = await loadProjectDetail(params.id);
   if (!data) notFound();
   const { project, health, pct, doneCount, taskCount, milestones, cols, journey, decisions, lastEntry } = data;

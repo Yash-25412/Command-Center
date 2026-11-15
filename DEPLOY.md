@@ -47,3 +47,17 @@ sign in (and see your data). Once you've decided which address this app is "you"
 Any time the app needs a change, the new code gets pushed to the same GitHub repository and
 Vercel redeploys automatically. Database changes go through the Supabase SQL Editor the same
 way as step 1.
+
+## Upgrading to Runway (v2)
+
+Runway adds dated reminders. Before (or right after) deploying this version:
+
+1. Supabase → **SQL Editor** → **New query**.
+2. Paste the contents of `supabase/migration-reminders.sql` and **Run**. It is safe to re-run.
+
+Until that's run, the app still works — reminders just stay empty and adding one won't save.
+
+What changed for navigation: Today / Inbox / Waiting fold into the **Cockpit** (`/today`),
+Weekly Review / Journal / People are tabs on the **Dashboard** (`/dashboard`). The old URLs
+redirect, so bookmarks keep working. Tasks without a project now show under **Ad Hoc**
+(`/project/adhoc`). Day boundaries follow IST.

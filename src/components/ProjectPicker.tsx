@@ -32,7 +32,7 @@ export default function ProjectPicker({
       onChange={handleChange}
       className="field field-sm h-7 max-w-[150px] text-[13px] font-medium"
     >
-      <option value="">None</option>
+      <option value="">Ad Hoc (no project)</option>
       {projects.map((p) => (
         <option key={p.id} value={p.id}>
           {p.name}

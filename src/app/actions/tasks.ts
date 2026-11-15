@@ -62,7 +62,7 @@ export async function quickAddTask(formData: FormData) {
   });
 
   revalidatePath("/work");
-  redirect(`/task/${task.id}`);
+  revalidatePath("/today");
 }
 
 export async function addCapture(formData: FormData) {
@@ -72,7 +72,7 @@ export async function addCapture(formData: FormData) {
   const supabase = createClient();
   await supabase.from("capture").insert({ text });
 
-  revalidatePath("/inbox");
+  revalidatePath("/today");
 }
 
 export async function convertCapture(formData: FormData) {
@@ -108,14 +108,14 @@ export async function convertCapture(formData: FormData) {
   });
   await supabase.from("capture").delete().eq("id", captureId);
 
-  revalidatePath("/inbox");
+  revalidatePath("/today");
 }
 
 export async function dismissCapture(formData: FormData) {
   const captureId = String(formData.get("captureId"));
   const supabase = createClient();
   await supabase.from("capture").delete().eq("id", captureId);
-  revalidatePath("/inbox");
+  revalidatePath("/today");
 }
 
 export async function addEntry(formData: FormData) {
@@ -174,6 +174,7 @@ export async function changeStatus(formData: FormData) {
 
   revalidatePath(`/task/${taskId}`);
   revalidatePath("/work");
+  revalidatePath("/today");
 }
 
 export async function followUp(formData: FormData) {
@@ -193,6 +194,7 @@ export async function followUp(formData: FormData) {
 
   revalidatePath(`/task/${taskId}`);
   revalidatePath("/work");
+  revalidatePath("/today");
 }
 
 export async function addLink(formData: FormData) {
@@ -275,6 +277,7 @@ export async function clearTaskFlag(formData: FormData) {
   revalidatePath(`/task/${taskId}`);
   revalidatePath("/today");
   revalidatePath("/work");
+  revalidatePath("/today");
 }
 
 // Powers the "quick update" popover available right on task rows/cards (Today,
@@ -359,6 +362,7 @@ export async function quickAddStructured(formData: FormData) {
   const categoryId = String(formData.get("categoryId") || "") || null;
   const priority = String(formData.get("priority") || "med") as "high" | "med" | "low";
   const dueDate = String(formData.get("dueDate") || "") || null;
+  const projectId = String(formData.get("projectId") || "") || null;
 
   const supabase = createClient();
   const { data: task, error } = await supabase
@@ -369,6 +373,7 @@ export async function quickAddStructured(formData: FormData) {
       category_id: categoryId,
       priority,
       due_date: dueDate,
+      project_id: projectId,
       status: "planned"
     })
     .select("id")
@@ -387,7 +392,7 @@ export async function quickAddStructured(formData: FormData) {
   });
 
   revalidatePath("/work");
-  redirect(`/task/${task.id}`);
+  revalidatePath("/today");
 }
 
 export async function resumeFromWaiting(formData: FormData) {
@@ -413,4 +418,24 @@ export async function resumeFromWaiting(formData: FormData) {
 
   revalidatePath(`/task/${taskId}`);
   revalidatePath("/work");
+  revalidatePath("/today");
+}
+
+// One-tap check from the Cockpit / All work. Ticking marks Done (and logs it,
+// same as a status change); unticking puts the task back to Active.
+export async function setTaskDone(taskId: string, done: boolean, from: string) {
+  const supabase = createClient();
+  const to = done ? "done" : "active";
+  if (from === to) return;
+  const now = new Date().toISOString();
+  await supabase
+    .from("task")
+    .update({ status: to, completed_at: done ? now : null, last_activity_at: now })
+    .eq("id", taskId);
+  await supabase.from("entry").insert({ task_id: taskId, kind: "status", body: "", status_from: from, status_to: to });
+  revalidatePath("/today");
+  revalidatePath("/work");
+  revalidatePath("/today");
+  revalidatePath("/dashboard");
+  revalidatePath(`/task/${taskId}`);
 }

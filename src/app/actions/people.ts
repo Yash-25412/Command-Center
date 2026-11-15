@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 const HUES = [200, 260, 20, 140, 320, 80, 0, 180, 40, 300];
 
 function refresh() {
-  revalidatePath("/people");
+  revalidatePath("/dashboard");
   revalidatePath("/work");
   revalidatePath("/today");
   revalidatePath("/waiting");

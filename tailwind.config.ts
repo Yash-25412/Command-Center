@@ -32,8 +32,11 @@ const config: Config = {
         plumbg: "var(--plum-bg)"
       },
       fontFamily: {
-        sans: ["Manrope", "system-ui", "sans-serif"],
-        serif: ["Source Serif 4", "Georgia", "serif"]
+        sans: ["var(--font-sans)", "Manrope", "system-ui", "sans-serif"],
+        // Runway has no serif: display headings are light Manrope. Kept as an
+        // alias so existing font-serif headings pick up the new look.
+        serif: ["var(--font-sans)", "Manrope", "system-ui", "sans-serif"],
+        mono: ["var(--font-mono)", "DM Mono", "ui-monospace", "monospace"]
       },
       borderRadius: {
         xl2: "14px"

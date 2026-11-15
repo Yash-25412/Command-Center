@@ -132,3 +132,21 @@ export async function loadProjectDetail(projectId: string) {
     categories
   };
 }
+
+// Ad Hoc: the default home for every task without a project. Not a row in the
+// project table — it's simply "project_id is null", so nothing can fall
+// through the cracks.
+export async function loadAdhoc() {
+  const { tasks } = await loadWorkspace();
+  const pTasks = tasks.filter((t) => !t.project_id && t.status !== "cancelled");
+  const open = pTasks.filter((t) => t.isOpen);
+  const done = pTasks.filter((t) => t.status === "done");
+  return {
+    tasks: pTasks,
+    open,
+    done,
+    overdue: open.filter((t) => t.overdue).length,
+    blocked: open.filter((t) => t.status === "blocked").length,
+    stale: open.filter((t) => t.stale).length
+  };
+}

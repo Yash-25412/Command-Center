@@ -53,7 +53,7 @@ export default async function WorkPage({
       doerName: first?.name || "Unassigned",
       doerIsMe: !!first?.is_me,
       doerHue: first?.hue ?? 200,
-      projectName: pr?.name || null,
+      projectName: pr?.name || "Ad Hoc",
       assignees: assignedPeople.map((p) => ({ id: p.id, name: p.name, is_me: p.is_me, hue: p.hue })),
       flag_type: t.flag_type,
       flag_date: t.flag_date,
@@ -64,6 +64,7 @@ export default async function WorkPage({
 
   if (scope === "me") rows = rows.filter((r: any) => r.assignees.some((a: any) => a.is_me));
   if (scope === "team") rows = rows.filter((r: any) => !r.assignees.some((a: any) => a.is_me));
+  if (scope === "flagged") rows = rows.filter((r: any) => !!r.flag_type);
   if (personFilter) rows = rows.filter((r: any) => r.assigneeIds.includes(personFilter));
   if (q) rows = rows.filter((r: any) => r.title.toLowerCase().includes(q) || r.next_action.toLowerCase().includes(q));
 
@@ -77,7 +78,7 @@ export default async function WorkPage({
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center gap-4">
-        <h1 className="font-serif text-[34px] font-medium tracking-tight">Work</h1>
+        <h1 className="text-[clamp(30px,3.8vw,52px)] font-light leading-none tracking-[-0.03em]">All work</h1>
         <span className="text-ink3">{rows.length} item{rows.length === 1 ? "" : "s"}</span>
         <form action="/work" className="ml-auto flex items-center gap-2">
           {scope !== "all" && <input type="hidden" name="scope" value={scope} />}
@@ -91,7 +92,7 @@ export default async function WorkPage({
       </div>
 
       <div className="flex items-center gap-2">
-        {(["all", "me", "team"] as const).map((s) => (
+        {(["all", "me", "team", "flagged"] as const).map((s) => (
           <Link
             key={s}
             href={scopeHref(s)}
@@ -101,7 +102,7 @@ export default async function WorkPage({
                 : "border-line2 text-ink2 hover:bg-hover"
             }`}
           >
-            {s === "all" ? "All" : s === "me" ? "Me" : "Team"}
+            {s === "all" ? "All" : s === "me" ? "Me" : s === "team" ? "Team" : "Flagged"}
           </Link>
         ))}
         <span className="mx-1 h-5 w-px bg-line2" />

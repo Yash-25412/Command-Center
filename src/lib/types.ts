@@ -28,6 +28,7 @@ export interface Project {
   target_date: string | null;
   health_override: "green" | "amber" | "red" | null;
   pinned: boolean;
+  archived_at?: string | null;
 }
 
 export interface Milestone {
@@ -96,5 +97,15 @@ export interface Link {
 export interface Capture {
   id: string;
   text: string;
+  created_at: string;
+}
+
+export interface Reminder {
+  id: string;
+  title: string;
+  remind_on: string;
+  project_id: string | null;
+  person_id: string | null;
+  done_at: string | null;
   created_at: string;
 }

@@ -2,6 +2,7 @@
 -- Paste this whole file into Supabase Studio -> SQL Editor -> New query -> Run.
 -- Safe to re-run: it drops and recreates its own tables only.
 
+drop table if exists reminder cascade;
 drop table if exists capture cascade;
 drop table if exists entry cascade;
 drop table if exists link cascade;
@@ -167,3 +168,25 @@ create policy "authenticated full access" on entry for all using (auth.role() = 
 create policy "authenticated full access" on link for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "authenticated full access" on routine for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "authenticated full access" on capture for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
+
+-- Runway reminders (same as migration-reminders.sql)
+
+create table if not exists reminder (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  remind_on date not null default current_date,
+  project_id uuid references project(id) on delete set null,
+  person_id uuid references person(id) on delete set null,
+  done_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists reminder_remind_on_idx on reminder(remind_on);
+create index if not exists reminder_open_idx on reminder(remind_on) where done_at is null;
+
+alter table reminder enable row level security;
+
+drop policy if exists "authenticated full access" on reminder;
+create policy "authenticated full access" on reminder
+  for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');

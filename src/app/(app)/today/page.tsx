@@ -1,279 +1,289 @@
 import Link from "next/link";
-import { loadWorkspace, DecoratedTask } from "@/lib/workspace";
-import { fmtDate, fmtDateWeekday, initials, FLAG_META } from "@/lib/format";
-import QuickEdit from "@/components/QuickEdit";
-import ProgressRing from "@/components/ProgressRing";
+import { loadCockpit, CTask } from "@/lib/cockpit";
+import { fmtDateWeekday } from "@/lib/format";
+import { clearTaskFlag, convertCapture, dismissCapture, followUp, resumeFromWaiting } from "@/app/actions/tasks";
+import { Dock, ReminderComposer, ReminderItem, TaskCard } from "@/components/cockpit/CockpitItems";
 
 export const dynamic = "force-dynamic";
 
-function Avatar({ t }: { t: DecoratedTask }) {
-  if (t.assignees.length === 0) {
-    return (
-      <span className="avatar h-[24px] w-[24px] flex-none text-[11px]" title="Unassigned">
-        ?
-      </span>
-    );
-  }
-  const shown = t.assignees.slice(0, 2);
-  const extra = t.assignees.length - shown.length;
+const DOW = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
+const C = 2 * Math.PI * 34;
+const ring = (p: number) => `${(C * Math.max(0, Math.min(1, p))).toFixed(1)} ${C.toFixed(1)}`;
+
+function dayParts(iso: string) {
+  const d = new Date(iso + "T00:00:00Z");
+  return { dow: DOW[d.getUTCDay()], date: d.getUTCDate() };
+}
+
+function Label({ children, tone = "ink3" }: { children: React.ReactNode; tone?: "ink3" | "red" | "accent" | "amber" }) {
+  const c = tone === "red" ? "text-red" : tone === "accent" ? "text-accent" : tone === "amber" ? "text-amber" : "text-ink3";
+  return <span className={`font-mono text-[10.5px] tracking-[0.16em] ${c}`}>{children}</span>;
+}
+
+function FollowUpCard({ t, today }: { t: CTask; today: string }) {
+  const isFlag = !!(t.flagType && t.flagDate && t.flagDate <= today);
+  const label = isFlag ? (t.flagType === "update" ? "Update due" : "Follow-up due") : "Follow up now";
+  const note = isFlag ? t.flagNote || t.projectName : `Waiting on ${t.waitingOn || "someone"}`;
   return (
-    <div className="flex flex-none -space-x-1.5">
-      {shown.map((p) => (
-        <span
-          key={p.id}
-          className={`avatar h-[24px] w-[24px] flex-none text-[11px] ring-2 ring-surface ${p.is_me ? "avatar-me" : ""}`}
-          style={p.is_me ? undefined : { background: `hsl(${p.hue} 30% 88%)`, color: `hsl(${p.hue} 35% 32%)` }}
-          title={p.is_me ? "Me" : p.name}
-        >
-          {initials(p.is_me ? "Me" : p.name)}
+    <div className="flex flex-col gap-2 rounded-[14px] border border-[var(--glass-line)] p-3 shadow-[inset_2px_0_0_var(--amber)]">
+      <Link href={`/task/${t.id}`} className="flex flex-col gap-0.5 hover:text-white">
+        <span className="font-medium leading-snug">{t.title}</span>
+        <span className="text-[12px] text-ink3">
+          <span className="text-amber">{label}</span> · {note}
         </span>
-      ))}
-      {extra > 0 && (
-        <span className="avatar h-[24px] w-[24px] flex-none text-[11px]" title={t.assignees.slice(2).map((p) => p.name).join(", ")}>
-          +{extra}
-        </span>
-      )}
+      </Link>
+      <div className="flex flex-wrap gap-1.5">
+        {isFlag ? (
+          <form action={clearTaskFlag}>
+            <input type="hidden" name="taskId" value={t.id} />
+            <button className="btn btn-sm">Done · clear flag</button>
+          </form>
+        ) : (
+          <>
+            <form action={followUp}>
+              <input type="hidden" name="taskId" value={t.id} />
+              <input type="hidden" name="who" value={t.waitingOn || "them"} />
+              <button className="btn btn-sm">Followed up · +2d</button>
+            </form>
+            <form action={resumeFromWaiting}>
+              <input type="hidden" name="taskId" value={t.id} />
+              <input type="hidden" name="who" value={t.waitingOn || "them"} />
+              <button className="btn btn-sm">Got it · resume</button>
+            </form>
+          </>
+        )}
+      </div>
     </div>
   );
 }
 
-export default async function TodayPage() {
-  const { tasks, people } = await loadWorkspace();
-  const today = new Date().toISOString().slice(0, 10);
-  const openTasks = tasks.filter((t) => t.isOpen);
-
-  const focus = openTasks
-    .filter((t) => t.focus_on === today || (t.assignees.some((a) => a.is_me) && t.due_date === today))
-    .sort((a, b) => a.rank - b.rank);
-  const focusIds = new Set(focus.map((t) => t.id));
-
-  const attention = openTasks
-    .filter((t) => t.reasons.length > 0 && !focusIds.has(t.id))
-    .sort((a, b) => a.rank - b.rank)
-    .slice(0, 6);
-
-  const waiting = openTasks
-    .filter((t) => t.status === "waiting")
-    .sort((a, b) => (a.follow_up_on || "9999").localeCompare(b.follow_up_on || "9999"));
-
-  const flagged = openTasks
-    .filter((t) => t.flag_type)
-    .sort((a, b) => (a.flag_date || "9999").localeCompare(b.flag_date || "9999"));
-
-  const comingUp = openTasks
-    .filter((t) => {
-      if (!t.due_date) return false;
-      const days = Math.round((new Date(t.due_date).getTime() - new Date(today).getTime()) / 86400000);
-      return days >= 1 && days <= 7;
-    })
-    .sort((a, b) => (a.due_date || "").localeCompare(b.due_date || ""))
-    .slice(0, 6);
-
-  const recentDone = tasks
-    .filter((t) => t.status === "done" && t.completed_at)
-    .sort((a, b) => (b.completed_at || "").localeCompare(a.completed_at || ""))
-    .slice(0, 4);
-
-  const team = people.filter((p) => !p.is_me && p.active);
-  const teamPulse = team.map((p) => {
-    const mine = openTasks.filter((t) => t.assignees.some((a) => a.id === p.id));
-    return {
-      person: p,
-      open: mine.length,
-      overdue: mine.filter((t) => t.overdue).length,
-      blocked: mine.filter((t) => t.status === "blocked").length,
-      waiting: mine.filter((t) => t.status === "waiting").length
-    };
-  });
-
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-  const overdueCount = openTasks.filter((t) => t.overdue).length;
-  const staleCount = openTasks.filter((t) => t.stale).length;
-
-  const doneTodayCount = tasks.filter(
-    (t) => t.status === "done" && t.completed_at && t.completed_at.slice(0, 10) === today
-  ).length;
-  const todayTotal = doneTodayCount + focus.length;
+export default async function CockpitPage() {
+  const c = await loadCockpit();
+  const total = c.openDue + c.doneDue;
+  const hour = new Date(Date.now() + 5.5 * 3600000).getUTCHours();
+  const greet = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const heading = c.backlog
+    ? `${greet}, Yash. ${c.backlog} carried — clear them first.`
+    : c.cleared
+    ? "Day cleared. The streak lives."
+    : `${greet}, Yash. ${c.openDue} left today.`;
+  const t = dayParts(c.today);
+  const linkProjects = c.projects.filter((p: any) => !p.archived_at && p.status !== "cancelled").map((p: any) => ({ id: p.id, name: p.name }));
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1.5">
-        <h1 className="font-serif text-[36px] font-medium tracking-tight leading-tight">{greeting}, Yash.</h1>
-        <p className="text-[15px] text-ink2">
-          {focus.length} on your plate today, {overdueCount} overdue, {waiting.length} waiting on others
-          {flagged.length > 0 ? `, ${flagged.length} flagged` : ""}
-          {staleCount > 0 ? `, ${staleCount} stale` : ""}.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-3 gap-3">
-        <ProgressRing
-          pct={todayTotal ? (doneTodayCount / todayTotal) * 100 : 0}
-          display={`${doneTodayCount}/${todayTotal || 0}`}
-          label="Done today"
-          colorVar="--green"
-        />
-        <ProgressRing
-          pct={openTasks.length ? (flagged.length / openTasks.length) * 100 : 0}
-          display={`${flagged.length}`}
-          label="Flagged for follow-up"
-          colorVar="--amber"
-        />
-        <ProgressRing
-          pct={openTasks.length ? (overdueCount / openTasks.length) * 100 : 0}
-          display={`${overdueCount}`}
-          label="Overdue"
-          colorVar="--red"
-        />
-      </div>
-
-      <div className="grid grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)] items-start gap-7">
-        <div className="flex min-w-0 flex-col gap-6">
-          <Section title="Focus today">
-            {focus.length === 0 && (
-              <Empty>Nothing pinned for today. Set a task's Focus date, or it lands here automatically when it's yours and due today.</Empty>
-            )}
-            {focus.map((t) => (
-              <Link key={t.id} href={`/task/${t.id}`} className="row-hover flex items-center gap-3 border-t border-line px-4 py-3 first:border-t-0">
-                <div className="min-w-0 flex-1">
-                  <div className="truncate font-medium">{t.title}</div>
-                  <div className="truncate text-[13px] text-ink2">{t.next_action ? `Next: ${t.next_action}` : "No next action yet"}</div>
-                </div>
-                <span className={`chip ${t.due.cls}`}>{t.due.label}</span>
-                <Avatar t={t} />
-                <QuickEdit t={{ id: t.id, due_date: t.due_date, flag_type: t.flag_type, flag_date: t.flag_date }} />
-              </Link>
-            ))}
-          </Section>
-
-          <Section title="Needs follow-up" hint={`${flagged.length} flagged`}>
-            {flagged.length === 0 && <Empty>Nothing flagged. Flag a task from its detail page when it needs a follow-up or update by a date.</Empty>}
-            {flagged.map((t) => {
-              const meta = FLAG_META[t.flag_type!];
-              const isDue = t.flag_date ? t.flag_date <= today : false;
-              return (
-                <Link key={t.id} href={`/task/${t.id}`} className="row-hover flex items-center gap-3 border-t border-line px-4 py-3 first:border-t-0">
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate font-medium">{t.title}</div>
-                    <div className="truncate text-[13px] text-ink2">{t.flag_note || t.project?.name || "No project"}</div>
-                  </div>
-                  <span className={`chip ${isDue ? "chip-red" : meta.cls}`}>
-                    {t.flag_date ? fmtDateWeekday(t.flag_date) : meta.label}
-                  </span>
-                  <Avatar t={t} />
-                  <QuickEdit t={{ id: t.id, due_date: t.due_date, flag_type: t.flag_type, flag_date: t.flag_date }} />
-                </Link>
-              );
-            })}
-          </Section>
-
-          <Section title="Needs attention" hint={`Top ${attention.length} by urgency`}>
-            {attention.length === 0 && <Empty>Nothing urgent right now.</Empty>}
-            {attention.map((t) => (
-              <Link key={t.id} href={`/task/${t.id}`} className="row-hover flex items-center gap-3 border-t border-line px-4 py-3 first:border-t-0">
-                <span
-                  className="h-2 w-2 flex-none rounded-full"
-                  style={{ background: t.status === "blocked" ? "var(--red)" : "var(--amber)" }}
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="truncate font-medium">{t.title}</div>
-                  <div className="truncate text-[13px] text-ink3">{t.project?.name || "No project"}</div>
-                </div>
-                {t.reasons.slice(0, 1).map((r, i) => (
-                  <span key={i} className={`chip ${r.cls}`}>
-                    {r.label}
-                  </span>
-                ))}
-                <Avatar t={t} />
-                <QuickEdit t={{ id: t.id, due_date: t.due_date, flag_type: t.flag_type, flag_date: t.flag_date }} />
-              </Link>
-            ))}
-          </Section>
-
-          <Section title="Waiting on others" hint="By follow-up date">
-            {waiting.length === 0 && <Empty>You're not waiting on anyone.</Empty>}
-            {waiting.slice(0, 3).map((t) => (
-              <Link key={t.id} href={`/task/${t.id}`} className="row-hover flex items-center gap-3 border-t border-line px-4 py-3 first:border-t-0">
-                <div className="min-w-0 flex-1">
-                  <div className="truncate font-medium">{t.title}</div>
-                  <div className="truncate text-[13px] text-ink2">{t.waiting_on}</div>
-                </div>
-                <span className="chip chip-amber">
-                  {t.follow_up_on ? `Follow up ${fmtDateWeekday(t.follow_up_on)}` : "No follow-up set"}
-                </span>
-              </Link>
-            ))}
-          </Section>
+    <div className="rise flex flex-col gap-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="flex flex-col gap-1.5">
+          <span className="eyebrow">The runway · scroll through time →</span>
+          <h1 className="text-[clamp(30px,3.8vw,52px)] font-light leading-[1.02] tracking-[-0.03em]">{heading}</h1>
         </div>
-
-        <div className="flex min-w-0 flex-col gap-6">
-          <Section title="Team pulse">
-            {teamPulse.length === 0 && <Empty>No team members yet.</Empty>}
-            {teamPulse.map((row) => (
-              <Link
-                key={row.person.id}
-                href={`/work?person=${row.person.id}`}
-                className="row-hover flex items-center gap-3 border-t border-line px-4 py-2.5 first:border-t-0"
-              >
-                <span
-                  className="avatar h-7 w-7 text-xs"
-                  style={{ background: `hsl(${row.person.hue} 30% 88%)`, color: `hsl(${row.person.hue} 35% 32%)` }}
-                >
-                  {initials(row.person.name)}
-                </span>
-                <span className="flex-1 font-medium">{row.person.name}</span>
-                {row.overdue > 0 && <span className="chip chip-red">{row.overdue} late</span>}
-                {row.blocked > 0 && <span className="chip chip-red">{row.blocked} blocked</span>}
-                {row.waiting > 0 && <span className="chip chip-amber">{row.waiting} waiting</span>}
-                <span className="w-14 text-right text-[13px] text-ink2">{row.open} open</span>
-              </Link>
-            ))}
-          </Section>
-
-          <Section title="Coming up, 7 days">
-            {comingUp.length === 0 && <Empty>Nothing due this week.</Empty>}
-            {comingUp.map((t) => (
-              <Link key={t.id} href={`/task/${t.id}`} className="row-hover flex items-center gap-3 border-t border-line px-4 py-2.5 first:border-t-0">
-                <span className="w-16 flex-none text-[13px] text-ink2">{fmtDate(t.due_date)}</span>
-                <span className="min-w-0 flex-1 truncate">{t.title}</span>
-                <Avatar t={t} />
-              </Link>
-            ))}
-          </Section>
+        <div className="glass flex items-center gap-3.5 rounded-full px-4 py-2.5">
+          <span className="text-[12px] text-ink3">Backlog</span>
+          <div className="h-1 w-36 rounded bg-white/10">
+            <div
+              className="h-full rounded transition-[width] duration-700"
+              style={{
+                width: `${c.backlogTotal ? (c.backlog / c.backlogTotal) * 100 : 0}%`,
+                background: "linear-gradient(90deg,#ff5a5f,#ff8c7a)",
+                boxShadow: "0 0 10px rgba(255,90,95,0.6)"
+              }}
+            />
+          </div>
+          <span className={`font-mono text-[12px] ${c.backlog ? "text-red" : "text-accent"}`}>
+            {c.backlog ? `${c.backlog} / ${c.backlogTotal}` : "clear"}
+          </span>
         </div>
       </div>
 
-      <Section title="Recently done">
-        <div className="grid grid-cols-4 gap-3 p-3">
-          {recentDone.length === 0 && <div className="col-span-4 py-4 text-center text-ink2">Nothing finished yet.</div>}
-          {recentDone.map((t) => (
-            <Link key={t.id} href={`/task/${t.id}`} className="card lift flex flex-col gap-1.5 p-3.5 hover:border-line2">
-              <span className="truncate font-medium">{t.title}</span>
-              <span className="flex items-center gap-2 text-[13px] text-ink2">
-                <Avatar t={t} />
-                Done {fmtDate(t.completed_at?.slice(0, 10))}
+      <div className="runway -mx-[clamp(18px,4vw,56px)] flex items-stretch gap-4 overflow-x-auto px-[clamp(18px,4vw,56px)] pb-4 pt-1">
+        {/* The vault: everything carried forward */}
+        <section
+          aria-label="The vault — carried forward"
+          className="glass flex min-h-[520px] w-[320px] flex-none flex-col gap-3 rounded-[26px] p-5"
+          style={{
+            borderColor: c.backlog ? "rgba(255,90,95,0.32)" : undefined,
+            background: c.backlog ? "linear-gradient(170deg, rgba(60,14,18,0.55), rgba(18,20,24,0.55))" : undefined
+          }}
+        >
+          <div className="flex items-start justify-between">
+            <div className="flex flex-col">
+              <Label tone={c.backlog ? "red" : "accent"}>THE VAULT</Label>
+              <span className="text-[34px] font-light leading-none tracking-[-0.03em]">{c.backlog ? "Carried" : "Sealed"}</span>
+            </div>
+            <span className={`font-mono text-[28px] ${c.backlog ? "text-red" : "text-accent"}`}>{c.backlog}</span>
+          </div>
+          <span className="text-[12.5px] text-ink3">
+            {c.backlogTotal ? "Rolled forward from earlier days. They pulse until cleared." : "Nothing carried. Keep it that way."}
+          </span>
+          {c.carried.map((x) => (
+            <TaskCard key={x.id} t={x} />
+          ))}
+          {c.remCarried.length > 0 && (
+            <>
+              <Label tone="red">REMINDERS</Label>
+              {c.remCarried.map((r) => (
+                <ReminderItem key={r.id} r={r} />
+              ))}
+            </>
+          )}
+        </section>
+
+        {/* Today */}
+        <section
+          aria-label="Today"
+          className="glass flex min-h-[520px] w-[420px] flex-none flex-col gap-3 rounded-[26px] p-5"
+          style={{ borderColor: "rgba(220,232,239,0.28)", background: "linear-gradient(170deg, rgba(207,224,234,0.09), rgba(18,20,24,0.6))" }}
+        >
+          <div className="flex items-start justify-between">
+            <div className="flex flex-col">
+              <Label tone="accent">TODAY · {fmtDateWeekday(c.today).toUpperCase()}</Label>
+              <span className="text-[46px] font-light leading-none tracking-[-0.03em]">{t.dow.charAt(0) + t.dow.slice(1).toLowerCase()}</span>
+            </div>
+            <svg role="img" aria-label={`${c.doneDue} of ${total} due items cleared`} width="60" height="60" viewBox="0 0 80 80">
+              <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="5" />
+              <circle cx="40" cy="40" r="34" fill="none" stroke="#dce8ef" strokeWidth="5" strokeLinecap="round" strokeDasharray={ring(total ? c.doneDue / total : 1)} transform="rotate(-90 40 40)" style={{ filter: "drop-shadow(0 0 6px rgba(207,224,234,0.6))" }} />
+              <text x="40" y="46" textAnchor="middle" fill="#e9ecef" fontFamily="var(--font-mono)" fontSize="15">
+                {c.doneDue}/{total}
+              </text>
+            </svg>
+          </div>
+          {c.cleared && (
+            <div className="rise rounded-[14px] px-3.5 py-3 font-semibold text-[#07080a]" style={{ background: "linear-gradient(135deg,#F4F7F9,#C9DAE4)" }}>
+              Day cleared — streak {c.streak} {c.streak === 1 ? "day" : "days"}.
+            </div>
+          )}
+          <Label>TASKS</Label>
+          {c.todayList.length === 0 && <span className="text-[13px] text-ink3">Nothing dated today.</span>}
+          {c.todayList.map((x) => (
+            <TaskCard key={x.id} t={x} />
+          ))}
+          {c.followUps.length > 0 && (
+            <>
+              <Label tone="amber">FOLLOW-UPS · {c.followUps.length} TO HANDLE</Label>
+              {c.followUps.map((x) => (
+                <FollowUpCard key={x.id} t={x} today={c.today} />
+              ))}
+            </>
+          )}
+          <Label>REMINDERS</Label>
+          {c.remToday.length === 0 && <span className="text-[13px] text-ink3">None for today.</span>}
+          {c.remToday.map((r) => (
+            <ReminderItem key={r.id} r={r} />
+          ))}
+        </section>
+
+        {/* The next five days */}
+        {c.days.map((d) => {
+          const p = dayParts(d.date);
+          const empty = !d.tasks.length && !d.reminders.length;
+          return (
+            <section key={d.date} className="glass flex min-h-[520px] w-[260px] flex-none flex-col gap-3 rounded-[26px] p-5" style={{ background: "rgba(18,20,24,0.45)" }}>
+              <div className="flex flex-col">
+                <Label>{p.dow}</Label>
+                <span className="text-[46px] font-light leading-none tracking-[-0.03em]">{p.date}</span>
+              </div>
+              <span className="min-h-[17px] text-[12px] text-ink3">
+                {empty ? "" : `${d.tasks.length} tasks · ${d.reminders.length} reminders`}
+              </span>
+              {d.tasks.map((x) => (
+                <TaskCard key={x.id} t={x} compact />
+              ))}
+              {d.reminders.map((r) => (
+                <ReminderItem key={r.id} r={r} />
+              ))}
+              {empty && (
+                <div className="flex flex-1 items-center justify-center rounded-[14px] border border-dashed border-[var(--glass-line)] text-[12.5px] text-ink3">
+                  Open runway
+                </div>
+              )}
+            </section>
+          );
+        })}
+      </div>
+
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(320px,1fr))] gap-4">
+        <section className="glass flex flex-col gap-1 rounded-[26px] p-5">
+          <div className="mb-2 flex items-baseline justify-between">
+            <span className="eyebrow">Needs attention</span>
+            <span className="font-mono text-[11.5px] text-ink3">ranked by urgency</span>
+          </div>
+          {c.attention.length === 0 && <span className="text-[13px] text-ink3">Nothing stuck, stale or missing a next action.</span>}
+          {c.attention.map((x) => (
+            <Link key={x.id} href={`/task/${x.id}`} className="row-hover flex items-center gap-3 rounded-[12px] px-2 py-2.5">
+              <span className={`h-2 w-2 flex-none rounded-full ${x.status === "blocked" ? "bg-red" : "bg-amber"}`} />
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="truncate font-medium">{x.title}</span>
+                <span className="text-[12px] text-ink3">
+                  {x.code} · {x.who}
+                </span>
+              </span>
+              <span className={`whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[11px] ${x.status === "blocked" ? "border-red text-red" : "border-amber text-amber"}`}>
+                {x.reason}
               </span>
             </Link>
           ))}
-        </div>
-      </Section>
+        </section>
+
+        <section className="glass flex flex-col gap-3 rounded-[26px] p-5">
+          <div className="flex items-baseline justify-between">
+            <span className="eyebrow">Reminders</span>
+            <span className="font-mono text-[11.5px] text-ink3">
+              {c.remCarried.filter((r) => !r.done).length + c.remToday.filter((r) => !r.done).length} open
+            </span>
+          </div>
+          <ReminderComposer projects={linkProjects} people={c.people} />
+          {c.remUpcoming.length > 0 && <Label>UPCOMING · 7 DAYS</Label>}
+          {c.remUpcoming.map((r) => (
+            <ReminderItem key={r.id} r={r} />
+          ))}
+        </section>
+
+        <section className="glass flex flex-col gap-5 rounded-[26px] p-5">
+          <div className="flex flex-col gap-2">
+            <div className="flex items-baseline justify-between">
+              <span className="eyebrow">Inbox</span>
+              <span className="font-mono text-[11.5px] text-ink3">{c.captures.length} captured</span>
+            </div>
+            {c.captures.length === 0 && <span className="text-[13px] text-ink3">Inbox zero. Everything has a home.</span>}
+            {c.captures.slice(0, 5).map((cap: any) => (
+              <div key={cap.id} className="flex flex-col gap-2 rounded-[14px] border border-dashed border-[var(--glass-line2)] p-3">
+                <span className="text-[13px] leading-snug">{cap.text}</span>
+                <div className="flex gap-1.5">
+                  <form action={convertCapture}>
+                    <input type="hidden" name="captureId" value={cap.id} />
+                    <input type="hidden" name="text" value={cap.text} />
+                    <button className="btn btn-sm">Make task</button>
+                  </form>
+                  <form action={dismissCapture}>
+                    <input type="hidden" name="captureId" value={cap.id} />
+                    <button className="btn btn-sm text-ink3">Dismiss</button>
+                  </form>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="eyebrow mb-1">Team pulse</span>
+            {c.team.map((m) => (
+              <Link key={m.id} href={`/work?person=${m.id}`} className="row-hover flex items-center gap-2.5 rounded-[12px] px-2 py-2">
+                <span
+                  className="flex h-7 w-7 flex-none items-center justify-center rounded-full text-[10.5px] font-semibold"
+                  style={{ background: `hsl(${m.hue} 22% 26%)`, color: `hsl(${m.hue} 45% 82%)` }}
+                >
+                  {m.name.slice(0, 2).toUpperCase()}
+                </span>
+                <span className="flex-1 text-[13.5px] font-medium">{m.name}</span>
+                {m.overdue > 0 && <span className="text-[11px] text-red">{m.overdue} late</span>}
+                {m.blocked > 0 && <span className="text-[11px] text-red">{m.blocked} blocked</span>}
+                {m.waiting > 0 && <span className="text-[11px] text-amber">{m.waiting} waiting</span>}
+                <span className="w-14 text-right font-mono text-[12px] text-ink3">{m.open} open</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      </div>
+
+      <Dock dash={ring(total ? c.doneDue / total : 1)} frac={`${c.doneDue}/${total}`} streak={c.streak} best={c.best} />
     </div>
   );
-}
-
-function Section({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
-  return (
-    <section className="flex flex-col gap-2">
-      <div className="flex items-baseline gap-2.5">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-ink3">{title}</h2>
-        {hint && <span className="text-xs text-ink3">{hint}</span>}
-      </div>
-      <div className="card overflow-hidden">{children}</div>
-    </section>
-  );
-}
-
-function Empty({ children }: { children: React.ReactNode }) {
-  return <div className="p-5 text-ink2">{children}</div>;
 }

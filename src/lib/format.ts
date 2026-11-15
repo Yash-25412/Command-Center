@@ -33,7 +33,28 @@ export function daysBetween(a: Date, b: Date): number {
 }
 
 export function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
+  return istToday();
+}
+
+// The app's "day" is an Indian Standard Time day. Servers run in UTC, so
+// without this the cockpit would flip to tomorrow at 5:30am IST and a task
+// ticked off at 1am IST would count for the wrong day.
+const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+export function istToday(): string {
+  return new Date(Date.now() + IST_OFFSET_MS).toISOString().slice(0, 10);
+}
+export function istDate(ts: string | null | undefined): string | null {
+  if (!ts) return null;
+  if (ts.length === 10) return ts;
+  return new Date(new Date(ts).getTime() + IST_OFFSET_MS).toISOString().slice(0, 10);
+}
+export function addDaysISO(d: string, n: number): string {
+  const x = new Date(d + "T00:00:00Z");
+  x.setUTCDate(x.getUTCDate() + n);
+  return x.toISOString().slice(0, 10);
+}
+export function diffDaysISO(a: string, b: string): number {
+  return Math.round((new Date(a + "T00:00:00Z").getTime() - new Date(b + "T00:00:00Z").getTime()) / 86400000);
 }
 
 export function dueLabel(due: string | null): { label: string; overdue: boolean; cls: string } {
