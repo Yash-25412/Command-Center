@@ -68,6 +68,8 @@ export default async function CockpitPage() {
     ? "Day cleared. The streak lives."
     : `${greet}, Yash. ${c.openDue} left today.`;
   const t = dayParts(c.today);
+  const vaultOpen = c.carried.filter((x) => !x.done).length;
+  const remOpen = c.remCarried.filter((r) => !r.done).length + c.remToday.filter((r) => !r.done).length;
   const linkProjects = c.projects.filter((p: any) => !p.archived_at && p.status !== "cancelled").map((p: any) => ({ id: p.id, name: p.name }));
 
   return (
@@ -101,31 +103,23 @@ export default async function CockpitPage() {
           aria-label="The vault — carried forward"
           className="glass flex min-h-[520px] w-[320px] flex-none flex-col gap-3 rounded-[26px] p-5"
           style={{
-            borderColor: c.backlog ? "rgba(255,90,95,0.32)" : undefined,
-            background: c.backlog ? "linear-gradient(170deg, rgba(60,14,18,0.55), rgba(18,20,24,0.55))" : undefined
+            borderColor: vaultOpen ? "rgba(255,90,95,0.32)" : undefined,
+            background: vaultOpen ? "linear-gradient(170deg, rgba(60,14,18,0.55), rgba(18,20,24,0.55))" : undefined
           }}
         >
           <div className="flex items-start justify-between">
             <div className="flex flex-col">
-              <Label tone={c.backlog ? "red" : "accent"}>THE VAULT</Label>
-              <span className="text-[34px] font-light leading-none tracking-[-0.03em]">{c.backlog ? "Carried" : "Sealed"}</span>
+              <Label tone={vaultOpen ? "red" : "accent"}>THE VAULT</Label>
+              <span className="text-[34px] font-light leading-none tracking-[-0.03em]">{vaultOpen ? "Carried" : "Sealed"}</span>
             </div>
-            <span className={`font-mono text-[28px] ${c.backlog ? "text-red" : "text-accent"}`}>{c.backlog}</span>
+            <span className={`font-mono text-[28px] ${vaultOpen ? "text-red" : "text-accent"}`}>{vaultOpen}</span>
           </div>
           <span className="text-[12.5px] text-ink3">
-            {c.backlogTotal ? "Rolled forward from earlier days. They pulse until cleared." : "Nothing carried. Keep it that way."}
+            {c.carried.length ? "Tasks rolled forward from earlier days. They pulse until cleared." : "No carried tasks. Keep it that way."}
           </span>
           {c.carried.map((x) => (
             <TaskCard key={x.id} t={x} />
           ))}
-          {c.remCarried.length > 0 && (
-            <>
-              <Label tone="red">REMINDERS</Label>
-              {c.remCarried.map((r) => (
-                <ReminderItem key={r.id} r={r} />
-              ))}
-            </>
-          )}
         </section>
 
         {/* Today */}
@@ -165,17 +159,12 @@ export default async function CockpitPage() {
               ))}
             </>
           )}
-          <Label>REMINDERS</Label>
-          {c.remToday.length === 0 && <span className="text-[13px] text-ink3">None for today.</span>}
-          {c.remToday.map((r) => (
-            <ReminderItem key={r.id} r={r} />
-          ))}
         </section>
 
         {/* The next five days */}
         {c.days.map((d) => {
           const p = dayParts(d.date);
-          const empty = !d.tasks.length && !d.reminders.length;
+          const empty = !d.tasks.length;
           return (
             <section key={d.date} className="glass flex min-h-[520px] w-[260px] flex-none flex-col gap-3 rounded-[26px] p-5" style={{ background: "rgba(18,20,24,0.45)" }}>
               <div className="flex flex-col">
@@ -183,13 +172,10 @@ export default async function CockpitPage() {
                 <span className="text-[46px] font-light leading-none tracking-[-0.03em]">{p.date}</span>
               </div>
               <span className="min-h-[17px] text-[12px] text-ink3">
-                {empty ? "" : `${d.tasks.length} tasks · ${d.reminders.length} reminders`}
+                {empty ? "" : `${d.tasks.length} task${d.tasks.length === 1 ? "" : "s"}`}
               </span>
               {d.tasks.map((x) => (
                 <TaskCard key={x.id} t={x} compact />
-              ))}
-              {d.reminders.map((r) => (
-                <ReminderItem key={r.id} r={r} />
               ))}
               {empty && (
                 <div className="flex flex-1 items-center justify-center rounded-[14px] border border-dashed border-[var(--glass-line)] text-[12.5px] text-ink3">
@@ -228,14 +214,33 @@ export default async function CockpitPage() {
           <div className="flex items-baseline justify-between">
             <span className="eyebrow">Reminders</span>
             <span className="font-mono text-[11.5px] text-ink3">
-              {c.remCarried.filter((r) => !r.done).length + c.remToday.filter((r) => !r.done).length} open
+              {remOpen ? `${remOpen} open` : "all clear"}
             </span>
           </div>
           <ReminderComposer projects={linkProjects} people={c.people} />
-          {c.remUpcoming.length > 0 && <Label>UPCOMING · 7 DAYS</Label>}
-          {c.remUpcoming.map((r) => (
-            <ReminderItem key={r.id} r={r} />
-          ))}
+          {c.remCarried.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <Label tone="red">CARRIED · {c.remCarried.filter((r) => !r.done).length} TO CLEAR</Label>
+              {c.remCarried.map((r) => (
+                <ReminderItem key={r.id} r={r} />
+              ))}
+            </div>
+          )}
+          <div className="flex flex-col gap-1">
+            <Label tone="accent">TODAY</Label>
+            {c.remToday.length === 0 && <span className="px-2.5 text-[13px] text-ink3">Nothing for today.</span>}
+            {c.remToday.map((r) => (
+              <ReminderItem key={r.id} r={r} />
+            ))}
+          </div>
+          {c.remUpcoming.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <Label>UPCOMING · 7 DAYS</Label>
+              {c.remUpcoming.map((r) => (
+                <ReminderItem key={r.id} r={r} />
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="glass flex flex-col gap-5 rounded-[26px] p-5">
