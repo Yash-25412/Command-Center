@@ -372,3 +372,22 @@ h1.font-serif, h2.font-serif, .font-serif.text-\[34px\] { font-weight: 300; lett
     opacity: 1;
   }
 }
+
+/* Native dropdown lists (Windows/Chrome draw them outside the page). Without
+   this they get a white background with the app's light text — unreadable. */
+select {
+  color-scheme: dark;
+}
+select option,
+select optgroup {
+  background-color: #121418;
+  color: #e9ecef;
+}
+select optgroup {
+  color: #9aa3ab;
+  font-weight: 600;
+}
+select option:checked {
+  background-color: #2d3137;
+  color: #ffffff;
+}
