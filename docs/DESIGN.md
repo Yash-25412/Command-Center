@@ -4,6 +4,10 @@
 ambient light, frosted panels with 1px translucent borders, a pearl/moonstone accent, and
 **scarlet only for carried (overdue) items**. Time reads left to right.
 
+Also saved as a reusable **Design System** artifact for other projects:
+https://claude.ai/artifact/H2mFThoKykUyNLoQt8k9NN (tokens, brand book, 12 components with live
+previews). The code here stays the source of truth.
+
 Source of truth: `src/app/globals.css` (tokens and component classes) and
 `tailwind.config.ts` (Tailwind names mapped to the tokens). The interactive prototype is
 board 03 on the design canvas (see `CLAUDE.md` §6).

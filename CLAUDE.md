@@ -118,6 +118,10 @@ read whichever of `docs/` applies to your task.
   "Command Center — Luxury Glass Prototypes":
   https://claude.ai/artifact/8v5gYQNKHj9RWYJfpabTWp. Board 03 "The Runway" is the chosen
   direction.
+- **Runway design system** (this app's look, packaged for reuse in other projects):
+  https://claude.ai/artifact/H2mFThoKykUyNLoQt8k9NN. When Yash says "use Runway" for a new
+  project, that's this. If you change the app's tokens or core classes, tell him the system
+  may need updating too.
 - **Midnight Noir Glass design system:** the runner-up direction, saved as a Claude Design
   System for future projects: https://claude.ai/artifact/VbesHgvFvfJ186SYNxKW9J. When Yash says
   "use Noir" for a new project, that's this.

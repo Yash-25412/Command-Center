@@ -10,6 +10,7 @@
 | 2026-11-16 | Life Mastery rebuilt in Runway (`d1d6dca`); practice tools reduced to one per skill. |
 | 2026-11-16 | Reminders shown only in the Reminders card (`95e0943`); dark native dropdowns (`466b005`). |
 | 2026-11-17 | Repo documentation for agents: `CLAUDE.md`, `docs/*`, `.env.example`. |
+| 2026-11-17 | Runway saved as a reusable Design System artifact. |
 
 ## Next (agreed direction, not built yet)
 
