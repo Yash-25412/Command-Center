@@ -61,3 +61,24 @@ What changed for navigation: Today / Inbox / Waiting fold into the **Cockpit** (
 Weekly Review / Journal / People are tabs on the **Dashboard** (`/dashboard`). The old URLs
 redirect, so bookmarks keep working. Tasks without a project now show under **Ad Hoc**
 (`/project/adhoc`). Day boundaries follow IST.
+
+## Migrations: what an existing database needs
+
+`schema.sql` creates everything for a fresh install. An older database should run these in
+order. Each one is idempotent, so re-running is harmless:
+
+1. `supabase/migration-task-flags.sql`: follow-up / update flags on tasks
+2. `supabase/migration-multi-assignee.sql`: `task_assignee` (several people per task)
+3. `supabase/migration-mastery-os.sql`: `mastery_state` (Life Mastery storage)
+4. `supabase/migration-reminders.sql`: `reminder` (Cockpit reminders)
+
+`migration-life-mode.sql` is optional; its tables aren't used by the current app.
+
+## Sign-in redirect URLs (Supabase → Authentication → URL Configuration)
+
+- **Site URL:** `https://command-center-one-lime.vercel.app` (the bare domain, no path).
+- **Redirect URLs:** `https://command-center-one-lime.vercel.app/**`, plus
+  `https://*-yash-6276.vercel.app/**` if you ever use Vercel preview links.
+
+If a sign-in email sends you to `localhost:3000`, the URL you came from isn't on this list.
+Sign-in links work once and expire after about an hour.
