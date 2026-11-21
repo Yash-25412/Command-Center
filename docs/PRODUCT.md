@@ -142,6 +142,10 @@ content is JSON in `src/components/life/mastery/data/`.
   - tabs: Focus, Theory/Form cues, Practice/Protocol, Guardrails, **Phase gate**
     (tick every criterion to unlock the next phase; the first clear date is
     recorded), Notes (autosaved) and Log
+  - where the programme data provides them (handstand v1.1+): each protocol block
+    opens to step-by-step **how-to** instructions and a **should feel** line;
+    Guardrails lists the **form break signs** that end a set; the gate shows
+    **passing feels like** / **not yet if**
   - **Log today's session:** tick the phase's protocol items and add notes
   - **Body check:** green / amber / red for the relevant body part, showing the
     phase's stop rules
@@ -169,3 +173,4 @@ content is JSON in `src/components/life/mastery/data/`.
 | 2026-11-16 | Work straight on `main`, with one production link. |
 | 2026-11-16 | Life Mastery restyled into Runway; practice tools reduced to one compact tool per skill. |
 | 2026-11-16 | Reminders live only in the Reminders card, not in the Vault or day columns. |
+| 2026-11-21 | Life programme content is edited in the "Handstand, Flag & Marathon" artifact and synced into `data/physical.json` (same schema). |

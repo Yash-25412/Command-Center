@@ -11,6 +11,7 @@
 | 2026-11-16 | Reminders shown only in the Reminders card (`95e0943`); dark native dropdowns (`466b005`). |
 | 2026-11-17 | Repo documentation for agents: `CLAUDE.md`, `docs/*`, `.env.example`. |
 | 2026-11-17 | Runway saved as a reusable Design System artifact. |
+| 2026-11-21 | Life data synced from the "Handstand, Flag & Marathon" artifact: handstand v1.1 (how-to steps, should-feel, form-break signs, gate pass/not-yet), clearer marathon run-walk progression; Life UI shows the new fields. |
 
 ## Next (agreed direction, not built yet)
 

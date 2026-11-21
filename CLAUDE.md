@@ -110,7 +110,7 @@ read whichever of `docs/` applies to your task.
 | Add an instant-feeling toggle | Client component plus local state and an action call, like `TaskCard` / `ReminderItem` in `CockpitItems.tsx`. |
 | Add a metric | Compute it in `loadMetrics()` (`src/lib/cockpit.ts`) from real history, never fake data, and render it as a `Tile` or a `glass` section in `/dashboard`. |
 | Open Capture from code | `openCapture("task" | "reminder" | "inbox")` from `RunwayNav.tsx` (client only). |
-| Change Life Mastery | Everything is in `MasteryOS.tsx`. Programme content is JSON in `src/components/life/mastery/data/`. The store shape is persisted as one JSON row in `mastery_state`, so keep old keys readable. |
+| Change Life Mastery | Everything is in `MasteryOS.tsx`. Programme content is JSON in `src/components/life/mastery/data/`. The physical programmes are authored in Yash's "Handstand, Flag & Marathon" artifact (https://claude.ai/artifact/ThjzgFfpghPgTkpzVdP4Fw): its `<script id="seed" type="application/json">` has the same schema as `physical.json`, so syncing means extracting it and replacing the file (keep it one line). The store shape is persisted as one JSON row in `mastery_state`, so keep old keys readable. |
 
 ## 6. Related artifacts outside the repo
 

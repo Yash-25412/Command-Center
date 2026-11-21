@@ -45,6 +45,12 @@ function gateCriteriaOf(skill: string, phase: any): string[] {
   const g = (phase.milestones || []).find((m: any) => m.type === "gate");
   return g ? g.criteria : [];
 }
+// The gate milestone carries optional "passFeel" (what passing feels like) and
+// "notYet" (signs you're not there) lists — physical programmes v1.1+.
+function gateMilestoneOf(skill: string, phase: any): any {
+  if (skill === "piano") return null;
+  return (phase.milestones || []).find((m: any) => m.type === "gate") || null;
+}
 function checkpointsOf(skill: string, phase: any): any[] {
   if (skill === "piano") return phase.drills || [];
   return (phase.milestones || []).filter((m: any) => m.type === "checkpoint");
@@ -298,6 +304,7 @@ function Dossier({ skill, phase, store, setStore }: { skill: SkillId; phase: any
   const gk = (i: number) => `${skill}-${phase.id}-gate-${i}`;
   const gateDone = gate.filter((_, i) => store.gateChecks[gk(i)]).length;
   const checkpoints = checkpointsOf(skill, phase);
+  const gateMs = gateMilestoneOf(skill, phase);
   const noteKey = `${skill}-${phase.id}`;
   const habitKey = `${skill}-${phase.id}-habit-${today()}`;
   const logs: any[] = store.logs[skill] || [];
@@ -412,6 +419,29 @@ function Dossier({ skill, phase, store, setStore }: { skill: SkillId; phase: any
                     {d.task}
                     {d.prescription ? ` — ${d.prescription}` : ""}
                   </span>
+                  {(d.steps?.length || d.feel) && (
+                    <details className="group mt-1.5">
+                      <summary className="w-fit cursor-pointer list-none font-mono text-[11px] tracking-[0.08em] text-accent hover:text-white">
+                        <span className="group-open:hidden">+ How to · how it should feel</span>
+                        <span className="hidden group-open:inline">− Hide</span>
+                      </summary>
+                      <div className="rise mt-2 flex flex-col gap-2.5 rounded-[14px] border border-[var(--glass-line)] bg-white/[0.02] p-3.5">
+                        {d.steps?.length > 0 && (
+                          <ol className="flex list-decimal flex-col gap-1.5 pl-4 text-[13px] leading-relaxed text-ink2 marker:font-mono marker:text-[11px] marker:text-ink3">
+                            {d.steps.map((st: string, j: number) => (
+                              <li key={j}>{st}</li>
+                            ))}
+                          </ol>
+                        )}
+                        {d.feel && (
+                          <p className="m-0 border-t border-[var(--glass-line)] pt-2.5 text-[13px] leading-relaxed text-ink2">
+                            <span className="eyebrow mr-2 text-teal">Should feel</span>
+                            {d.feel}
+                          </p>
+                        )}
+                      </div>
+                    </details>
+                  )}
                 </span>
               </div>
             ))}
@@ -479,6 +509,17 @@ function Dossier({ skill, phase, store, setStore }: { skill: SkillId; phase: any
               ))}
             </div>
           </div>
+          {(phase.formBreakSigns || []).length > 0 && (
+            <div className="flex flex-col gap-1.5 rounded-[16px] border border-[var(--glass-line)] p-4">
+              <span className="eyebrow text-amber">Form break signs · end the set</span>
+              {phase.formBreakSigns.map((f: string, i: number) => (
+                <span key={i} className={`text-[13px] leading-relaxed ${/^rule:/i.test(f) ? "mt-1 font-medium text-ink" : "text-ink2"}`}>
+                  {!/^rule:/i.test(f) && <span className="mr-2 text-amber">·</span>}
+                  {f}
+                </span>
+              ))}
+            </div>
+          )}
           {phase.guardrails.stopRule && (
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-[16px] border border-[rgba(233,195,138,0.35)] bg-[rgba(233,195,138,0.06)] p-3.5 text-[13px]">
@@ -502,6 +543,26 @@ function Dossier({ skill, phase, store, setStore }: { skill: SkillId; phase: any
               <span className="ttl text-[14px]">{c}</span>
             </div>
           ))}
+          {gateMs && (gateMs.passFeel?.length > 0 || gateMs.notYet?.length > 0) && (
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              {gateMs.passFeel?.length > 0 && (
+                <div className="flex flex-col gap-1.5 rounded-[16px] border border-[rgba(157,211,200,0.3)] bg-[rgba(157,211,200,0.05)] p-4">
+                  <span className="eyebrow text-teal">Passing feels like</span>
+                  {gateMs.passFeel.map((f: string, i: number) => (
+                    <span key={i} className="text-[13px] leading-relaxed text-ink2">{f}</span>
+                  ))}
+                </div>
+              )}
+              {gateMs.notYet?.length > 0 && (
+                <div className="flex flex-col gap-1.5 rounded-[16px] border border-[rgba(233,195,138,0.3)] bg-[rgba(233,195,138,0.05)] p-4">
+                  <span className="eyebrow text-amber">Not yet if</span>
+                  {gateMs.notYet.map((f: string, i: number) => (
+                    <span key={i} className="text-[13px] leading-relaxed text-ink2">{f}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           {gate.length > 0 && gateDone === gate.length && (
             <div className="rise mt-2 rounded-[14px] px-4 py-3 font-semibold text-[#07080a]" style={{ background: "linear-gradient(135deg,#F4F7F9,#C9DAE4)" }}>
               Gate cleared{store.gateClearedDates?.[noteKey] ? ` on ${store.gateClearedDates[noteKey]}` : ""} — next phase unlocked.
